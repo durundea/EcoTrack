@@ -6,61 +6,46 @@ import {
 import { useDashboardData } from './useDashboardData';
 import { DEFAULT_FILTERS, type DashboardFilters } from './filters';
 import { exportSummaryToCsv } from './exportCsv';
-import type { WasteCategory } from '../../shared/api/contracts';
-
-const CATEGORY_COLORS: Record<WasteCategory, string> = {
-  plastic: '#3b82f6',
-  organic: '#22c55e',
-  metal: '#a855f7',
-  paper: '#f59e0b',
-  ewaste: '#ef4444',
-};
-
-const CATEGORIES: WasteCategory[] = ['plastic', 'organic', 'metal', 'paper', 'ewaste'];
-
-function KpiCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
-      <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-2 text-3xl font-bold text-slate-100">{value}</p>
-      {sub && <p className="mt-1 text-sm text-slate-500">{sub}</p>}
-    </div>
-  );
-}
+import { WASTE_CATEGORIES, WASTE_CHART_COLORS, WASTE_LABELS } from '../../shared/domain/waste';
+import { KpiCard } from '../../shared/ui/KpiCard';
+import { PageHeader } from '../../shared/ui/PageHeader';
+import { CrudActions } from '../../shared/ui/CrudActions';
 
 export function DashboardPage() {
   const [filters, setFilters] = useState<DashboardFilters>(DEFAULT_FILTERS);
   const { data: summary, isLoading } = useDashboardData(filters);
 
-  const categoryBarData = CATEGORIES.map((cat) => ({
-    name: cat.charAt(0).toUpperCase() + cat.slice(1),
+  const categoryBarData = WASTE_CATEGORIES.map((cat) => ({
+    name: WASTE_LABELS[cat],
     kg: summary?.byCategory[cat] ?? 0,
-    fill: CATEGORY_COLORS[cat],
+    fill: WASTE_CHART_COLORS[cat],
   }));
 
-  const categoryPieData = CATEGORIES.map((cat) => ({
-    name: cat.charAt(0).toUpperCase() + cat.slice(1),
+  const categoryPieData = WASTE_CATEGORIES.map((cat) => ({
+    name: WASTE_LABELS[cat],
     value: summary?.byCategory[cat] ?? 0,
-    fill: CATEGORY_COLORS[cat],
+    fill: WASTE_CHART_COLORS[cat],
   }));
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Analytics Dashboard</h1>
-        {summary && (
-          <button
-            onClick={() => exportSummaryToCsv(summary)}
-            className="rounded border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800"
-          >
-            Export CSV
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Analytics Dashboard"
+        subtitle="Track throughput, efficiency, revenue, and CO2 impact from a single operations view."
+        actions={
+          summary ? (
+            <button
+              onClick={() => exportSummaryToCsv(summary)}
+              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800"
+            >
+              Export CSV
+            </button>
+          ) : undefined
+        }
+      />
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 rounded-lg border border-slate-800 bg-slate-900 p-4">
+      <div className="flex flex-wrap gap-3 rounded-xl border border-slate-800 bg-slate-900/75 p-4 shadow-lg shadow-slate-950/30">
         <div>
           <label className="mr-2 text-xs text-slate-400">Range</label>
           <select
@@ -81,7 +66,7 @@ export function DashboardPage() {
             className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
           >
             <option value="all">All</option>
-            {CATEGORIES.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+            {WASTE_CATEGORIES.map((c) => <option key={c} value={c}>{WASTE_LABELS[c]}</option>)}
           </select>
         </div>
       </div>
@@ -91,7 +76,7 @@ export function DashboardPage() {
       ) : (
         <>
           {/* KPI cards */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <KpiCard
               label="Total Waste Processed"
               value={`${(summary!.totalWasteProcessedKg / 1000).toFixed(1)} t`}
@@ -115,7 +100,7 @@ export function DashboardPage() {
           {/* Charts */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Bar chart */}
-            <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/75 p-5 shadow-lg shadow-slate-950/30">
               <h2 className="mb-4 text-sm font-medium text-slate-300">Waste by Category (kg)</h2>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={categoryBarData}>
@@ -135,7 +120,7 @@ export function DashboardPage() {
             </div>
 
             {/* Pie chart */}
-            <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/75 p-5 shadow-lg shadow-slate-950/30">
               <h2 className="mb-4 text-sm font-medium text-slate-300">Category Distribution</h2>
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
@@ -163,7 +148,7 @@ export function DashboardPage() {
           </div>
 
           {/* Drill-down table */}
-          <div className="rounded-lg border border-slate-800">
+          <div className="rounded-xl border border-slate-800 bg-slate-900/75 shadow-lg shadow-slate-950/30">
             <div className="bg-slate-800 px-4 py-3 text-xs font-semibold uppercase text-slate-400">
               Category Breakdown
             </div>
@@ -173,17 +158,21 @@ export function DashboardPage() {
                   <th className="px-4 py-2 text-left text-xs text-slate-400">Category</th>
                   <th className="px-4 py-2 text-left text-xs text-slate-400">Weight (kg)</th>
                   <th className="px-4 py-2 text-left text-xs text-slate-400">Share (%)</th>
+                  <th className="px-4 py-2 text-left text-xs text-slate-400">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {CATEGORIES.map((cat) => {
+                {WASTE_CATEGORIES.map((cat) => {
                   const kg = summary!.byCategory[cat];
                   const share = ((kg / summary!.totalWasteProcessedKg) * 100).toFixed(1);
                   return (
                     <tr key={cat} className="border-b border-slate-800 hover:bg-slate-800/40">
-                      <td className="px-4 py-2 capitalize">{cat}</td>
+                      <td className="px-4 py-2">{WASTE_LABELS[cat]}</td>
                       <td className="px-4 py-2">{kg}</td>
                       <td className="px-4 py-2">{share}%</td>
+                      <td className="px-4 py-2">
+                        <CrudActions />
+                      </td>
                     </tr>
                   );
                 })}

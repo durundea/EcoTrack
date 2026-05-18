@@ -3,15 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
 import { validateSegregationEntry } from './validation';
 import type { WasteCategory } from '../../shared/api/contracts';
-
-const CATEGORIES: WasteCategory[] = ['plastic', 'organic', 'metal', 'paper', 'ewaste'];
-const CATEGORY_LABELS: Record<WasteCategory, string> = {
-  plastic: 'Plastic',
-  organic: 'Organic',
-  metal: 'Metal',
-  paper: 'Paper',
-  ewaste: 'E-Waste',
-};
+import { WASTE_CATEGORIES, WASTE_LABELS } from '../../shared/domain/waste';
+import { StatusBadge } from '../../shared/ui/StatusBadge';
+import { PageHeader } from '../../shared/ui/PageHeader';
+import { CrudActions } from '../../shared/ui/CrudActions';
 
 const emptyWeights = (): Record<WasteCategory, number> => ({
   plastic: 0, organic: 0, metal: 0, paper: 0, ewaste: 0,
@@ -49,10 +44,13 @@ export function SegregationPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-semibold">Waste Segregation</h1>
+      <PageHeader
+        title="Waste Segregation"
+        subtitle="Capture category weights and keep the downstream recycling pipeline accurate."
+      />
 
       {/* New batch form */}
-      <div className="rounded-lg border border-slate-800 bg-slate-900 p-6">
+      <div className="rounded-xl border border-slate-800 bg-slate-900/75 p-6 shadow-lg shadow-slate-950/30">
         <h2 className="mb-4 text-lg font-medium">Record Segregation Batch</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -66,9 +64,9 @@ export function SegregationPage() {
             />
           </div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-            {CATEGORIES.map((cat) => (
+            {WASTE_CATEGORIES.map((cat) => (
               <div key={cat}>
-                <label className="mb-1 block text-xs text-slate-400">{CATEGORY_LABELS[cat]} (kg)</label>
+                <label className="mb-1 block text-xs text-slate-400">{WASTE_LABELS[cat]} (kg)</label>
                 <input
                   type="number"
                   min={0}
@@ -96,7 +94,7 @@ export function SegregationPage() {
         {isLoading ? (
           <p className="text-slate-400">Loading…</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-slate-800">
+          <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/75 shadow-lg shadow-slate-950/30">
             <table className="w-full text-sm text-slate-100">
               <thead className="bg-slate-800 text-xs uppercase text-slate-400">
                 <tr>
@@ -108,6 +106,7 @@ export function SegregationPage() {
                   <th className="px-4 py-3 text-left">Paper</th>
                   <th className="px-4 py-3 text-left">E-Waste</th>
                   <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -121,9 +120,12 @@ export function SegregationPage() {
                     <td className="px-4 py-3">{b.weights.paper} kg</td>
                     <td className="px-4 py-3">{b.weights.ewaste} kg</td>
                     <td className="px-4 py-3">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${b.status === 'complete' ? 'bg-green-700 text-green-100' : 'bg-yellow-700 text-yellow-100'}`}>
+                      <StatusBadge variant={b.status === 'complete' ? 'success' : 'warning'}>
                         {b.status}
-                      </span>
+                      </StatusBadge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <CrudActions />
                     </td>
                   </tr>
                 ))}

@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
-import { nextStage, isTerminalStage, STAGE_LABELS, STAGE_COLORS } from './recyclingRules';
+import { nextStage, isTerminalStage, STAGE_LABELS } from './recyclingRules';
+import { WASTE_LABELS } from '../../shared/domain/waste';
+import { StatusBadge } from '../../shared/ui/StatusBadge';
+import { PageHeader } from '../../shared/ui/PageHeader';
 
 export function RecyclingPage() {
   const queryClient = useQueryClient();
@@ -19,25 +22,28 @@ export function RecyclingPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Recycling Pipeline</h1>
+      <PageHeader
+        title="Recycling Pipeline"
+        subtitle="Advance batches through conversion stages with traceable history."
+      />
 
       <div className="space-y-4">
         {batches?.map((batch) => (
-          <div key={batch.id} className="rounded-lg border border-slate-800 bg-slate-900 p-5">
+          <div key={batch.id} className="rounded-xl border border-slate-800 bg-slate-900/75 p-5 shadow-lg shadow-slate-950/30">
             <div className="flex items-center justify-between">
               <div>
                 <span className="font-mono text-sm text-slate-400">{batch.id}</span>
                 <p className="mt-1 font-medium">
-                  {batch.inputCategory.charAt(0).toUpperCase() + batch.inputCategory.slice(1)} →{' '}
+                  {WASTE_LABELS[batch.inputCategory]} {'->'}{' '}
                   {batch.outputProduct}
                 </p>
                 <p className="text-sm text-slate-400">
                   Input: {batch.inputWeightKg} kg | Output: {batch.outputQuantity} units
                 </p>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STAGE_COLORS[batch.stage]}`}>
+              <StatusBadge variant={batch.stage === 'converted' ? 'success' : batch.stage === 'processing' ? 'warning' : 'info'}>
                 {STAGE_LABELS[batch.stage]}
-              </span>
+              </StatusBadge>
             </div>
 
             {/* Stage timeline */}
