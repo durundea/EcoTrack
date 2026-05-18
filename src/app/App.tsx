@@ -1,12 +1,10 @@
 import { BrowserRouter } from 'react-router-dom';
-import { AppShell } from './layouts/AppShell';
+import { AppRoutes } from './routes';
 
 export function App() {
   return (
     <BrowserRouter>
-      <AppShell>
-        <h1 className="text-2xl font-semibold">Operations Console</h1>
-      </AppShell>
+      <AppRoutes />
     </BrowserRouter>
   );
 }
