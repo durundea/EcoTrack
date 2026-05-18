@@ -1,5 +1,7 @@
 import { type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
+import { ConnectivityBadge } from '../../shared/ui/ConnectivityBadge';
+import { ErrorBoundary } from '../../shared/errors/ErrorBoundary';
 
 type Props = { children: ReactNode };
 
@@ -38,8 +40,11 @@ export function AppShell({ children }: Props) {
             ))}
           </ul>
         </nav>
-        <main className="p-6">{children}</main>
+        <main className="p-6">
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </main>
       </div>
+      <ConnectivityBadge />
     </div>
   );
 }
