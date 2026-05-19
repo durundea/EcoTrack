@@ -3,6 +3,8 @@ import {
   useCollectionSchedule,
   useCreatePickupTask,
   useDeletePickupTask,
+  useDispatchToSegregation,
+  useSegregationDispatches,
   useUpdatePickupStatus,
   useUpdatePickupTask,
 } from './useCollection';
@@ -27,6 +29,10 @@ const STATUS_VARIANT: Record<string, 'warning' | 'info' | 'success'> = {
 
 type TaskRowProps = {
   task: PickupTask;
+  dispatchAvailableKg: number;
+  dispatchValue: string;
+  onDispatchValueChange: (taskId: string, value: string) => void;
+  onDispatch: (taskId: string) => void;
   onEdit: (task: PickupTask) => void;
   onDelete: (task: PickupTask) => void;
 };
@@ -41,7 +47,15 @@ const defaultFormState: PickupFormState = {
   estimatedWeightKg: 0,
 };
 
-function TaskRow({ task, onEdit, onDelete }: TaskRowProps) {
+function TaskRow({
+  task,
+  dispatchAvailableKg,
+  dispatchValue,
+  onDispatchValueChange,
+  onDispatch,
+  onEdit,
+  onDelete,
+}: TaskRowProps) {
   const { mutate, isPending } = useUpdatePickupStatus();
 
   return (
@@ -75,7 +89,33 @@ function TaskRow({ task, onEdit, onDelete }: TaskRowProps) {
               Mark Collected
             </button>
           )}
-          <CrudActions onEdit={() => onEdit(task)} onDelete={() => onDelete(task)} />
+          {task.status === 'collected' && (
+            <>
+              <input
+                type="number"
+                min={1}
+                max={dispatchAvailableKg}
+                value={dispatchValue}
+                onChange={(event) => onDispatchValueChange(task.id, event.target.value)}
+                placeholder="kg"
+                className="w-20 rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
+              />
+              <button
+                type="button"
+                disabled={isPending || dispatchAvailableKg <= 0}
+                onClick={() => onDispatch(task.id)}
+                className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                Send to Segregation
+              </button>
+              <span className="text-xs text-slate-500">Available: {dispatchAvailableKg} kg</span>
+            </>
+          )}
+          {task.status !== 'collected' ? (
+            <CrudActions onEdit={() => onEdit(task)} onDelete={() => onDelete(task)} />
+          ) : (
+            <span className="text-xs text-slate-500">Locked after collection</span>
+          )}
         </div>
       </td>
     </tr>
@@ -84,9 +124,11 @@ function TaskRow({ task, onEdit, onDelete }: TaskRowProps) {
 
 export function CollectionPage() {
   const { data: tasks, isLoading, isError } = useCollectionSchedule();
+  const { data: dispatches } = useSegregationDispatches();
   const { mutate: createTask, isPending: creatingTask } = useCreatePickupTask();
   const { mutate: updateTask, isPending: updatingTask } = useUpdatePickupTask();
   const { mutate: deleteTask } = useDeletePickupTask();
+  const { mutate: dispatchToSegregation } = useDispatchToSegregation();
 
   const role = useMemo(() => getCurrentRole(), []);
   const isAdmin = role === 'admin';
@@ -94,6 +136,7 @@ export function CollectionPage() {
   const [editingTask, setEditingTask] = useState<PickupTask | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [formState, setFormState] = useState<PickupFormState>(defaultFormState);
+  const [dispatchInputs, setDispatchInputs] = useState<Record<string, string>>({});
 
   const isSubmitting = creatingTask || updatingTask;
 
@@ -147,12 +190,32 @@ export function CollectionPage() {
   }
 
   function handleEdit(task: PickupTask) {
+    if (task.status === 'collected') return;
     openEditModal(task);
   }
 
   function handleDelete(task: PickupTask) {
     if (!window.confirm(`Delete pickup task ${task.id}?`)) return;
     deleteTask(task.id);
+  }
+
+  function getAvailableDispatchKg(task: PickupTask) {
+    const dispatched = (dispatches ?? [])
+      .filter((entry) => entry.pickupTaskId === task.id)
+      .reduce((sum, entry) => sum + entry.dispatchedWeightKg, 0);
+    return Math.max(task.estimatedWeightKg - dispatched, 0);
+  }
+
+  function handleDispatch(taskId: string) {
+    const weight = Number(dispatchInputs[taskId] ?? 0);
+    dispatchToSegregation(
+      { pickupTaskId: taskId, dispatchedWeightKg: weight },
+      {
+        onSuccess: () => {
+          setDispatchInputs((prev) => ({ ...prev, [taskId]: '' }));
+        },
+      }
+    );
   }
 
   if (isLoading) return <p className="text-slate-400">Loading schedule…</p>;
@@ -189,7 +252,18 @@ export function CollectionPage() {
           </thead>
           <tbody>
             {(tasks ?? []).map((task) => (
-              <TaskRow key={task.id} task={task} onEdit={handleEdit} onDelete={handleDelete} />
+              <TaskRow
+                key={task.id}
+                task={task}
+                dispatchAvailableKg={getAvailableDispatchKg(task)}
+                dispatchValue={dispatchInputs[task.id] ?? ''}
+                onDispatchValueChange={(taskId, value) =>
+                  setDispatchInputs((prev) => ({ ...prev, [taskId]: value }))
+                }
+                onDispatch={handleDispatch}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
             ))}
           </tbody>
         </table>
@@ -245,6 +319,7 @@ export function CollectionPage() {
                 type="number"
                 min={0}
                 value={formState.estimatedWeightKg}
+                disabled={editingTask?.status === 'collected'}
                 onChange={(e) => onFormFieldChange('estimatedWeightKg', Number(e.target.value))}
                 className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
               />

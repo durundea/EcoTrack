@@ -14,6 +14,13 @@ export function useCollectionSchedule() {
   });
 }
 
+export function useSegregationDispatches() {
+  return useQuery({
+    queryKey: ['collection', 'dispatches'],
+    queryFn: () => api.collection.getDispatches(),
+  });
+}
+
 export function useUpdatePickupStatus() {
   const invalidate = useScheduleInvalidator();
   return useMutation({
@@ -45,5 +52,18 @@ export function useDeletePickupTask() {
   return useMutation({
     mutationFn: (id: string) => api.collection.deleteTask(id),
     onSuccess: invalidate,
+  });
+}
+
+export function useDispatchToSegregation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ pickupTaskId, dispatchedWeightKg }: { pickupTaskId: string; dispatchedWeightKg: number }) =>
+      api.collection.dispatchToSegregation(pickupTaskId, dispatchedWeightKg),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collection', 'schedule'] });
+      queryClient.invalidateQueries({ queryKey: ['collection', 'dispatches'] });
+      queryClient.invalidateQueries({ queryKey: ['segregation', 'batches'] });
+    },
   });
 }

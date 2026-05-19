@@ -18,17 +18,23 @@ export function SegregationPage() {
     queryKey: ['segregation', 'batches'],
     queryFn: () => api.segregation.getBatches(),
   });
+  const { data: dispatches } = useQuery({
+    queryKey: ['collection', 'dispatches'],
+    queryFn: () => api.collection.getDispatches(),
+  });
 
   const [weights, setWeights] = useState<Record<WasteCategory, number>>(emptyWeights());
-  const [pickupTaskId, setPickupTaskId] = useState('');
+  const [dispatchId, setDispatchId] = useState('');
   const [formError, setFormError] = useState('');
+  const pendingDispatches = (dispatches ?? []).filter((entry) => entry.pendingSegregationWeightKg > 0);
 
   const { mutate, isPending } = useMutation({
-    mutationFn: () => api.segregation.createBatch(pickupTaskId, weights),
+    mutationFn: () => api.segregation.createBatch(dispatchId, weights),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['segregation', 'batches'] });
+      queryClient.invalidateQueries({ queryKey: ['collection', 'dispatches'] });
       setWeights(emptyWeights());
-      setPickupTaskId('');
+      setDispatchId('');
       setFormError('');
     },
   });
@@ -37,7 +43,7 @@ export function SegregationPage() {
     e.preventDefault();
     const result = validateSegregationEntry(weights);
     if (!result.valid) { setFormError(result.message); return; }
-    if (!pickupTaskId.trim()) { setFormError('Pickup task ID is required.'); return; }
+    if (!dispatchId.trim()) { setFormError('Dispatch selection is required.'); return; }
     setFormError('');
     mutate();
   }
@@ -54,14 +60,19 @@ export function SegregationPage() {
         <h2 className="mb-4 text-lg font-medium">Record Segregation Batch</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm text-slate-400">Pickup Task ID</label>
-            <input
-              type="text"
-              value={pickupTaskId}
-              onChange={(e) => setPickupTaskId(e.target.value)}
-              placeholder="P-1003"
+            <label className="mb-1 block text-sm text-slate-400">Dispatch Queue Entry</label>
+            <select
+              value={dispatchId}
+              onChange={(e) => setDispatchId(e.target.value)}
               className="rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus:border-brand-500 focus:outline-none"
-            />
+            >
+              <option value="">Select dispatch</option>
+              {pendingDispatches.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.id} | Pickup {entry.pickupTaskId} | Pending {entry.pendingSegregationWeightKg} kg
+                </option>
+              ))}
+            </select>
           </div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
             {WASTE_CATEGORIES.map((cat) => (
@@ -100,6 +111,8 @@ export function SegregationPage() {
                 <tr>
                   <th className="px-4 py-3 text-left">Batch ID</th>
                   <th className="px-4 py-3 text-left">Pickup Task</th>
+                  <th className="px-4 py-3 text-left">Dispatch</th>
+                  <th className="px-4 py-3 text-left">Input Kg</th>
                   <th className="px-4 py-3 text-left">Plastic</th>
                   <th className="px-4 py-3 text-left">Organic</th>
                   <th className="px-4 py-3 text-left">Metal</th>
@@ -114,6 +127,8 @@ export function SegregationPage() {
                   <tr key={b.id} className="border-b border-slate-800">
                     <td className="px-4 py-3 font-mono text-slate-400">{b.id}</td>
                     <td className="px-4 py-3">{b.pickupTaskId}</td>
+                    <td className="px-4 py-3">{b.dispatchId}</td>
+                    <td className="px-4 py-3">{b.inputWeightKg} kg</td>
                     <td className="px-4 py-3">{b.weights.plastic} kg</td>
                     <td className="px-4 py-3">{b.weights.organic} kg</td>
                     <td className="px-4 py-3">{b.weights.metal} kg</td>

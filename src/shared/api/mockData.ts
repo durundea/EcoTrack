@@ -2,8 +2,10 @@ import type {
   DashboardSummary,
   InventoryItem,
   PickupTask,
+  ProductConversion,
   RecyclingBatch,
   SaleRecord,
+  SegregationDispatch,
   SegregationBatch,
 } from './contracts';
 
@@ -27,9 +29,23 @@ export const pickupTasks: PickupTask[] = [
     id: 'P-1003',
     site: 'Sunrise Apartments',
     status: 'collected',
+    lockedAfterCollection: true,
+    segregatedWeightKg: 120,
     assignedCollectorId: 'U-002',
     scheduledDate: '2026-05-18',
     estimatedWeightKg: 200,
+  },
+];
+
+export const segregationDispatches: SegregationDispatch[] = [
+  {
+    id: 'SD-001',
+    pickupTaskId: 'P-1003',
+    dispatchedWeightKg: 200,
+    segregatedWeightKg: 120,
+    pendingSegregationWeightKg: 80,
+    status: 'partial',
+    createdAt: '2026-05-18T09:00:00Z',
   },
 ];
 
@@ -37,7 +53,9 @@ export const segregationBatches: SegregationBatch[] = [
   {
     id: 'SB-001',
     pickupTaskId: 'P-1003',
+    dispatchId: 'SD-001',
     weights: { plastic: 60, organic: 90, metal: 20, paper: 15, ewaste: 15 },
+    inputWeightKg: 200,
     status: 'complete',
     createdAt: '2026-05-18T10:00:00Z',
   },
@@ -52,6 +70,7 @@ export const recyclingBatches: RecyclingBatch[] = [
     outputProduct: 'Compost',
     inputWeightKg: 90,
     outputQuantity: 45,
+    inventoryUpdated: false,
     stageHistory: [
       { stage: 'collected', at: '2026-05-18T08:00:00Z' },
       { stage: 'segregated', at: '2026-05-18T10:30:00Z' },
@@ -59,6 +78,8 @@ export const recyclingBatches: RecyclingBatch[] = [
     ],
   },
 ];
+
+export const productConversions: ProductConversion[] = [];
 
 export const inventoryItems: InventoryItem[] = [
   { id: 'INV-001', name: 'Compost (Organic)', category: 'recycled-product', quantityKg: 45, unit: 'kg' },
