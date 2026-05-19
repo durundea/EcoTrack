@@ -1,12 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { api } from '../../shared/api/client';
 import { nextStage, isTerminalStage, STAGE_LABELS } from './recyclingRules';
 import { WASTE_LABELS } from '../../shared/domain/waste';
 import { StatusBadge } from '../../shared/ui/StatusBadge';
 import { PageHeader } from '../../shared/ui/PageHeader';
 
+type ProductDraft = {
+  productName: string;
+  quantity: number;
+  unit: 'kg' | 'units';
+};
+
 export function RecyclingPage() {
   const queryClient = useQueryClient();
+  const [productDrafts, setProductDrafts] = useState<Record<string, ProductDraft>>({});
   const { data: batches, isLoading } = useQuery({
     queryKey: ['recycling', 'batches'],
     queryFn: () => api.recycling.getBatches(),
@@ -18,6 +26,42 @@ export function RecyclingPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recycling', 'batches'] }),
   });
 
+  const { mutate: createProduct, isPending: creatingProduct } = useMutation({
+    mutationFn: (input: {
+      recyclingBatchId: string;
+      productName: string;
+      quantity: number;
+      unit: 'kg' | 'units';
+    }) => api.recycling.createProductConversion(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recycling', 'batches'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'items'] });
+    },
+  });
+
+  const { mutate: syncInventory, isPending: syncingInventory } = useMutation({
+    mutationFn: () => api.inventory.syncInventoryFromConversions(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['inventory', 'items'] }),
+  });
+
+  function updateDraft(batchId: string, next: Partial<ProductDraft>) {
+    setProductDrafts((prev) => ({
+      ...prev,
+      [batchId]: {
+        productName: prev[batchId]?.productName ?? '',
+        quantity: prev[batchId]?.quantity ?? 0,
+        unit: prev[batchId]?.unit ?? 'kg',
+        ...next,
+      },
+    }));
+  }
+
+  function handleCreateProduct(batchId: string) {
+    const draft = productDrafts[batchId];
+    if (!draft) return;
+    createProduct({ recyclingBatchId: batchId, ...draft });
+  }
+
   if (isLoading) return <p className="text-slate-400">Loading recycling pipeline…</p>;
 
   return (
@@ -26,6 +70,16 @@ export function RecyclingPage() {
         title="Recycling Pipeline"
         subtitle="Advance batches through conversion stages with traceable history."
       />
+      <div>
+        <button
+          type="button"
+          disabled={syncingInventory}
+          onClick={() => syncInventory()}
+          className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+        >
+          Push Converted Products to Inventory
+        </button>
+      </div>
 
       <div className="space-y-4">
         {batches?.map((batch) => (
@@ -65,6 +119,42 @@ export function RecyclingPage() {
               >
                 Advance to {STAGE_LABELS[nextStage(batch.stage)]}
               </button>
+            )}
+
+            {batch.stage === 'converted' && (
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-4">
+                <input
+                  type="text"
+                  placeholder="Product name"
+                  value={productDrafts[batch.id]?.productName ?? ''}
+                  onChange={(event) => updateDraft(batch.id, { productName: event.target.value })}
+                  className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="Quantity"
+                  value={productDrafts[batch.id]?.quantity || ''}
+                  onChange={(event) => updateDraft(batch.id, { quantity: Number(event.target.value) })}
+                  className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
+                />
+                <select
+                  value={productDrafts[batch.id]?.unit ?? 'kg'}
+                  onChange={(event) => updateDraft(batch.id, { unit: event.target.value as 'kg' | 'units' })}
+                  className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
+                >
+                  <option value="kg">kg</option>
+                  <option value="units">units</option>
+                </select>
+                <button
+                  type="button"
+                  disabled={creatingProduct}
+                  onClick={() => handleCreateProduct(batch.id)}
+                  className="rounded bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  Create Product
+                </button>
+              </div>
             )}
           </div>
         ))}

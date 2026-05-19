@@ -11,13 +11,27 @@ export type PickupTask = {
   assignedCollectorId?: string;
   scheduledDate: string;
   estimatedWeightKg: number;
+  lockedAfterCollection?: boolean;
+  segregatedWeightKg?: number;
+};
+
+export type SegregationDispatch = {
+  id: string;
+  pickupTaskId: string;
+  dispatchedWeightKg: number;
+  segregatedWeightKg: number;
+  pendingSegregationWeightKg: number;
+  status: 'pending' | 'partial' | 'complete';
+  createdAt: string;
 };
 
 // ─── Segregation ───────────────────────────────────────────────────────────
 export type SegregationBatch = {
   id: string;
   pickupTaskId: string;
+  dispatchId: string;
   weights: Record<WasteCategory, number>;
+  inputWeightKg: number;
   status: 'pending' | 'complete';
   createdAt: string;
 };
@@ -33,7 +47,17 @@ export type RecyclingBatch = {
   outputProduct: string;
   inputWeightKg: number;
   outputQuantity: number;
+  inventoryUpdated?: boolean;
   stageHistory: { stage: RecyclingStage; at: string }[];
+};
+
+export type ProductConversion = {
+  id: string;
+  recyclingBatchId: string;
+  productName: string;
+  quantity: number;
+  unit: 'kg' | 'units';
+  createdAt: string;
 };
 
 // ─── Inventory ─────────────────────────────────────────────────────────────

@@ -37,6 +37,14 @@ App runs at http://localhost:5173
 | Recycling   | ✓     | ✓         |
 | Inventory   | ✓     | ✗         |
 
+## Operational Workflow Rules
+
+1. Once a pickup task is marked `collected`, it is locked and cannot be edited or deleted.
+2. Only `collected` pickup tasks can be dispatched to segregation.
+3. Segregation can consume only dispatched quantities and cannot exceed pending dispatched weight.
+4. Recycling batches must reach the `converted` stage before product creation is allowed.
+5. Converted products are moved into inventory through the dedicated inventory sync action.
+
 ## Architecture
 
 - **Feature modules:** `src/features/{auth,collection,segregation,recycling,inventory,dashboard}`

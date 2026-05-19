@@ -110,6 +110,8 @@ export function InventoryPage() {
   }, [editTarget]);
 
   const totalRevenue = sales?.reduce((sum, s) => sum + s.revenueINR, 0) ?? 0;
+  const recycledProducts = (items ?? []).filter((item) => item.category === 'recycled-product');
+  const rawWasteItems = (items ?? []).filter((item) => item.category === 'raw-waste');
 
   return (
     <div className="space-y-8">
@@ -120,8 +122,8 @@ export function InventoryPage() {
 
       {/* Summary KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <KpiCard label="Total Items" value={`${items?.length ?? '—'}`} />
-        <KpiCard label="Total Sales" value={`${sales?.length ?? '—'}`} />
+        <KpiCard label="Recycled Products" value={`${recycledProducts.length}`} />
+        <KpiCard label="Raw Waste Entries" value={`${rawWasteItems.length}`} />
         <KpiCard label="Revenue (INR)" value={`₹${totalRevenue.toLocaleString('en-IN')}`} />
       </div>
 
@@ -147,7 +149,14 @@ export function InventoryPage() {
                 {items?.map((item) => (
                   <tr key={item.id} className="border-b border-slate-800 hover:bg-slate-800/50">
                     <td className="px-4 py-3 font-mono text-slate-400">{item.id}</td>
-                    <td className="px-4 py-3">{item.name}</td>
+                    <td className="px-4 py-3">
+                      {item.name}
+                      {item.category === 'recycled-product' && (
+                        <span className="ml-2 rounded bg-emerald-900/60 px-2 py-0.5 text-[10px] uppercase tracking-wide text-emerald-200">
+                          From Recycling Flow
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <StatusBadge variant={item.category === 'recycled-product' ? 'success' : 'neutral'}>
                         {item.category}
