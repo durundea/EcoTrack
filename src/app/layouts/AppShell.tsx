@@ -29,7 +29,7 @@ export function AppShell({ children }: Props) {
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand-500 shadow-[0_0_14px_rgba(34,197,94,0.7)]" />
-            <span className="text-lg font-bold tracking-tight text-brand-500">EcoTrack Command</span>
+            <span className="text-lg font-bold tracking-tight text-brand-500">EcoTrack</span>
           </div>
           <div className="relative">
             <button

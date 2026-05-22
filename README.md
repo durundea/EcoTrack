@@ -35,7 +35,7 @@ App runs at http://localhost:5173
 | Collection  | ✓     | ✓         |
 | Segregation | ✓     | ✓         |
 | Recycling   | ✓     | ✓         |
-| Inventory   | ✓     | ✗         |
+| Inventory   | ✓     | ✓         |
 
 ## Operational Workflow Rules
 
@@ -44,6 +44,14 @@ App runs at http://localhost:5173
 3. Segregation can consume only dispatched quantities and cannot exceed pending dispatched weight.
 4. Recycling batches must reach the `converted` stage before product creation is allowed.
 5. Converted products are moved into inventory through the dedicated inventory sync action.
+
+## Inventory Pricing and Sales Approval Rules
+
+1. Every stock ledger item has a standard price (`standardPriceINR`).
+2. Only admin can update the standard price value.
+3. Collector can create sale drafts and send them for approval.
+4. Admin approves pending sales from dashboard approval queue.
+5. Approved sales become locked and cannot be edited or deleted.
 
 ## Architecture
 

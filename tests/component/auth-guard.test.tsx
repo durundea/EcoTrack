@@ -4,8 +4,8 @@ import { canAccess, setSession, getCurrentRole, clearSession } from '../../src/f
 describe('role access', () => {
   beforeEach(() => clearSession());
 
-  it('blocks collector from inventory routes', () => {
-    expect(canAccess('collector', 'inventory')).toBe(false);
+  it('allows collector on inventory routes', () => {
+    expect(canAccess('collector', 'inventory')).toBe(true);
   });
 
   it('blocks collector from dashboard', () => {

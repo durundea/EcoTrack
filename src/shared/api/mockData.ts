@@ -82,9 +82,30 @@ export const recyclingBatches: RecyclingBatch[] = [
 export const productConversions: ProductConversion[] = [];
 
 export const inventoryItems: InventoryItem[] = [
-  { id: 'INV-001', name: 'Compost (Organic)', category: 'recycled-product', quantityKg: 45, unit: 'kg' },
-  { id: 'INV-002', name: 'Eco-bricks (Plastic)', category: 'recycled-product', quantityKg: 60, unit: 'units' },
-  { id: 'INV-003', name: 'Raw Scrap Metal', category: 'raw-waste', quantityKg: 20, unit: 'kg' },
+  {
+    id: 'INV-001',
+    name: 'Compost (Organic)',
+    category: 'recycled-product',
+    quantityKg: 45,
+    unit: 'kg',
+    standardPriceINR: 60,
+  },
+  {
+    id: 'INV-002',
+    name: 'Eco-bricks (Plastic)',
+    category: 'recycled-product',
+    quantityKg: 60,
+    unit: 'units',
+    standardPriceINR: 35,
+  },
+  {
+    id: 'INV-003',
+    name: 'Raw Scrap Metal',
+    category: 'raw-waste',
+    quantityKg: 20,
+    unit: 'kg',
+    standardPriceINR: 48,
+  },
 ];
 
 export const saleRecords: SaleRecord[] = [
@@ -94,6 +115,19 @@ export const saleRecords: SaleRecord[] = [
     quantitySold: 20,
     revenueINR: 1200,
     soldAt: '2026-05-17T09:00:00Z',
+    approvalStatus: 'approved',
+    requestedByUserId: 'U-002',
+    approvedByUserId: 'U-001',
+    approvedAt: '2026-05-17T10:00:00Z',
+  },
+  {
+    id: 'SALE-002',
+    inventoryItemId: 'INV-002',
+    quantitySold: 5,
+    revenueINR: 175,
+    soldAt: '2026-05-20T08:30:00Z',
+    approvalStatus: 'pending_approval',
+    requestedByUserId: 'U-002',
   },
 ];
 
