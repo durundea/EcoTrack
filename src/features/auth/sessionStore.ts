@@ -2,7 +2,7 @@ import type { AppArea, AuthUser, UserRole } from './types';
 
 const SESSION_KEY = 'ecotrack_session';
 
-const collectorAreas: AppArea[] = ['collection', 'segregation', 'recycling'];
+const collectorAreas: AppArea[] = ['collection', 'segregation', 'recycling', 'inventory'];
 
 export function canAccess(role: UserRole, area: AppArea): boolean {
   if (role === 'admin') return true;

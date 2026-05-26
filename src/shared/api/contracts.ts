@@ -67,7 +67,10 @@ export type InventoryItem = {
   category: 'raw-waste' | 'recycled-product';
   quantityKg: number;
   unit: 'kg' | 'units';
+  standardPriceINR: number;
 };
+
+export type SaleApprovalStatus = 'draft' | 'pending_approval' | 'approved' | 'rejected';
 
 export type SaleRecord = {
   id: string;
@@ -75,6 +78,11 @@ export type SaleRecord = {
   quantitySold: number;
   revenueINR: number;
   soldAt: string;
+  approvalStatus: SaleApprovalStatus;
+  requestedByUserId: string;
+  approvedByUserId?: string;
+  approvedAt?: string;
+  rejectionReason?: string;
 };
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────

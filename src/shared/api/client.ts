@@ -6,11 +6,17 @@ import type {
   ProductConversion,
   RecyclingBatch,
   RecyclingStage,
+  SaleApprovalStatus,
   SaleRecord,
   SegregationBatch,
   SegregationDispatch,
   WasteCategory,
 } from './contracts';
+
+type Actor = {
+  actorRole: 'admin' | 'collector';
+  actorUserId: string;
+};
 import {
   dashboardSummary,
   inventoryItems,
@@ -198,11 +204,31 @@ export const api = {
       await delay();
       return [...saleRecords];
     },
+    async getSalesByStatus(status: SaleApprovalStatus): Promise<SaleRecord[]> {
+      await delay();
+      return saleRecords.filter((sale) => sale.approvalStatus === status).map((sale) => ({ ...sale }));
+    },
     async updateItem(id: string, payload: Partial<Omit<InventoryItem, 'id'>>): Promise<InventoryItem> {
       await delay();
       const item = inventoryItems.find((i) => i.id === id);
       if (!item) throw new Error(`Inventory item ${id} not found`);
+      if (typeof payload.standardPriceINR === 'number') {
+        throw new Error('Use updateItemPrice for standard price updates');
+      }
       Object.assign(item, payload);
+      return { ...item };
+    },
+    async updateItemPrice(id: string, standardPriceINR: number, actor: Actor): Promise<InventoryItem> {
+      await delay();
+      if (actor.actorRole !== 'admin') {
+        throw new Error('Only admin can update standard price');
+      }
+      if (standardPriceINR < 0) {
+        throw new Error('Standard price must be non-negative');
+      }
+      const item = inventoryItems.find((i) => i.id === id);
+      if (!item) throw new Error(`Inventory item ${id} not found`);
+      item.standardPriceINR = standardPriceINR;
       return { ...item };
     },
     async deleteItem(id: string): Promise<{ id: string }> {
@@ -212,17 +238,90 @@ export const api = {
       inventoryItems.splice(index, 1);
       return { id };
     },
-    async updateSale(id: string, payload: Partial<Omit<SaleRecord, 'id'>>): Promise<SaleRecord> {
+    async createSaleDraft(input: {
+      inventoryItemId: string;
+      quantitySold: number;
+      soldAt: string;
+      requestedByUserId: string;
+    }): Promise<SaleRecord> {
+      await delay();
+      if (input.quantitySold <= 0) {
+        throw new Error('Quantity sold must be greater than 0');
+      }
+      const item = inventoryItems.find((i) => i.id === input.inventoryItemId);
+      if (!item) {
+        throw new Error('Inventory item not found');
+      }
+      const created: SaleRecord = {
+        id: `SALE-${Date.now()}`,
+        inventoryItemId: input.inventoryItemId,
+        quantitySold: input.quantitySold,
+        revenueINR: item.standardPriceINR * input.quantitySold,
+        soldAt: input.soldAt,
+        approvalStatus: 'draft',
+        requestedByUserId: input.requestedByUserId,
+      };
+      saleRecords.unshift(created);
+      return { ...created };
+    },
+    async submitSaleForApproval(id: string, actor: Actor): Promise<SaleRecord> {
+      await delay();
+      const sale = saleRecords.find((entry) => entry.id === id);
+      if (!sale) throw new Error(`Sale record ${id} not found`);
+      if (sale.approvalStatus !== 'draft') {
+        throw new Error('Only draft sale can be submitted');
+      }
+      if (sale.requestedByUserId !== actor.actorUserId && actor.actorRole !== 'admin') {
+        throw new Error('Only creator or admin can submit this sale');
+      }
+      sale.approvalStatus = 'pending_approval';
+      return { ...sale };
+    },
+    async approveSale(id: string, actor: Actor): Promise<SaleRecord> {
+      await delay();
+      if (actor.actorRole !== 'admin') {
+        throw new Error('Only admin can approve sales');
+      }
+      const sale = saleRecords.find((entry) => entry.id === id);
+      if (!sale) throw new Error(`Sale record ${id} not found`);
+      if (sale.approvalStatus !== 'pending_approval') {
+        throw new Error('Only pending sale can be approved');
+      }
+      sale.approvalStatus = 'approved';
+      sale.approvedByUserId = actor.actorUserId;
+      sale.approvedAt = new Date().toISOString();
+      return { ...sale };
+    },
+    async updateSale(id: string, payload: Partial<Omit<SaleRecord, 'id'>>, actor: Actor): Promise<SaleRecord> {
       await delay();
       const sale = saleRecords.find((s) => s.id === id);
       if (!sale) throw new Error(`Sale record ${id} not found`);
+      if (sale.approvalStatus === 'approved') {
+        throw new Error(`Sale ${id} is approved and cannot be edited`);
+      }
+      if (actor.actorRole === 'collector' && sale.requestedByUserId !== actor.actorUserId) {
+        throw new Error('Collectors can update only their own sales');
+      }
+      if (actor.actorRole !== 'admin') {
+        const approvalFields: Array<keyof SaleRecord> = ['approvalStatus', 'approvedByUserId', 'approvedAt', 'rejectionReason'];
+        for (const field of approvalFields) {
+          if (field in payload) throw new Error(`Only admin can modify ${field}`);
+        }
+      }
       Object.assign(sale, payload);
       return { ...sale };
     },
-    async deleteSale(id: string): Promise<{ id: string }> {
+    async deleteSale(id: string, actor: Actor): Promise<{ id: string }> {
       await delay();
       const index = saleRecords.findIndex((s) => s.id === id);
       if (index === -1) throw new Error(`Sale record ${id} not found`);
+      const sale = saleRecords[index];
+      if (sale.approvalStatus === 'approved') {
+        throw new Error(`Sale ${id} is approved and cannot be deleted`);
+      }
+      if (actor.actorRole === 'collector' && sale.requestedByUserId !== actor.actorUserId) {
+        throw new Error('Collectors can delete only their own sales');
+      }
       saleRecords.splice(index, 1);
       return { id };
     },
@@ -248,6 +347,7 @@ export const api = {
             category: 'recycled-product',
             quantityKg: conversion.quantity,
             unit: conversion.unit,
+            standardPriceINR: 0,
           });
         }
 
