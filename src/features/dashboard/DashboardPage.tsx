@@ -11,15 +11,14 @@ import { KpiCard } from '../../shared/ui/KpiCard';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { CrudActions } from '../../shared/ui/CrudActions';
 import { getSession } from '../auth/sessionStore';
-import { useApproveSale, usePendingSalesForApproval } from '../inventory/useInventoryApproval';
+import { usePendingSalesForApproval } from '../inventory/useInventoryApproval';
 
 export function DashboardPage() {
-  const user = getSession();
+  const user = getSession()?.user ?? null;
   const isAdmin = user?.role === 'admin';
   const [filters, setFilters] = useState<DashboardFilters>(DEFAULT_FILTERS);
   const { data: summary, isLoading } = useDashboardData(filters);
-  const { data: pendingSales } = usePendingSalesForApproval();
-  const { mutate: approveSale, isPending: approvingSale } = useApproveSale();
+  const { isUnavailable: approvalQueueUnavailable } = usePendingSalesForApproval();
 
   const categoryBarData = WASTE_CATEGORIES.map((cat) => ({
     name: WASTE_LABELS[cat],
@@ -187,32 +186,13 @@ export function DashboardPage() {
           </div>
 
           {isAdmin && (
-            <div className="rounded-xl border border-slate-800 bg-slate-900/75 p-5 shadow-lg shadow-slate-950/30">
-              <h2 className="mb-3 text-sm font-semibold text-slate-200">Pending Sales Approvals</h2>
-              {(pendingSales ?? []).length === 0 ? (
-                <p className="text-sm text-slate-400">No pending sales approvals.</p>
-              ) : (
-                <div className="space-y-2">
-                  {(pendingSales ?? []).map((sale) => (
-                    <div
-                      key={sale.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded border border-slate-800 px-3 py-2"
-                    >
-                      <span className="text-xs text-slate-300">
-                        {sale.id} | Item {sale.inventoryItemId} | Qty {sale.quantitySold} | ₹{sale.revenueINR}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={approvingSale || !user}
-                        onClick={() => approveSale({ id: sale.id, actorUserId: user!.id })}
-                        className="rounded bg-emerald-600 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                      >
-                        Approve Sale
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="rounded-xl border border-amber-700/40 bg-amber-950/20 p-5 shadow-lg shadow-slate-950/30">
+              <h2 className="mb-2 text-sm font-semibold text-amber-200">Pending Sales Approvals</h2>
+              <p className="text-sm text-amber-100">
+                {approvalQueueUnavailable
+                  ? 'Approval queue is temporarily unavailable because the backend does not yet expose a sales listing endpoint.'
+                  : 'No pending sales approvals.'}
+              </p>
             </div>
           )}
         </>

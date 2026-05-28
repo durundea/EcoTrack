@@ -4,42 +4,29 @@ import { api } from '../../shared/api/client';
 import { KpiCard } from '../../shared/ui/KpiCard';
 import { StatusBadge } from '../../shared/ui/StatusBadge';
 import { PageHeader } from '../../shared/ui/PageHeader';
-import { CrudActions } from '../../shared/ui/CrudActions';
 import { Modal } from '../../shared/ui/Modal';
 import type { InventoryItem, SaleRecord } from '../../shared/api/contracts';
 import { getSession } from '../auth/sessionStore';
 
 type EditTarget =
-  | { type: 'item'; value: InventoryItem }
   | { type: 'sale'; value: SaleRecord }
   | { type: 'price'; value: InventoryItem }
   | null;
 
-const SALE_STATUS_VARIANT: Record<SaleRecord['approvalStatus'], 'warning' | 'info' | 'success' | 'danger'> = {
-  draft: 'info',
-  pending_approval: 'warning',
-  approved: 'success',
-  rejected: 'danger',
-};
-
 export function InventoryPage() {
   const queryClient = useQueryClient();
-  const user = useMemo(() => getSession(), []);
+  const user = useMemo(() => getSession()?.user ?? null, []);
   const isAdmin = user?.role === 'admin';
 
   const { data: items, isLoading: loadingItems } = useQuery({
     queryKey: ['inventory', 'items'],
     queryFn: () => api.inventory.getItems(),
   });
-  const { data: sales, isLoading: loadingSales } = useQuery({
-    queryKey: ['inventory', 'sales'],
-    queryFn: () => api.inventory.getSales(),
-  });
 
   const [editTarget, setEditTarget] = useState<EditTarget>(null);
-  const [itemForm, setItemForm] = useState<Partial<InventoryItem>>({});
   const [saleForm, setSaleForm] = useState<Partial<SaleRecord>>({});
   const [priceForm, setPriceForm] = useState<number>(0);
+  const [latestDraft, setLatestDraft] = useState<SaleRecord | null>(null);
   const [createSaleForm, setCreateSaleForm] = useState({
     inventoryItemId: '',
     quantitySold: 1,
@@ -48,69 +35,37 @@ export function InventoryPage() {
 
   const invalidateInventory = () => {
     queryClient.invalidateQueries({ queryKey: ['inventory', 'items'] });
-    queryClient.invalidateQueries({ queryKey: ['inventory', 'sales'] });
-    queryClient.invalidateQueries({ queryKey: ['inventory', 'sales', 'pending'] });
   };
-
-  const { mutate: updateItem, isPending: updatingItem } = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Partial<Omit<InventoryItem, 'id'>> }) =>
-      api.inventory.updateItem(id, payload),
-    onSuccess: invalidateInventory,
-  });
 
   const { mutate: updateItemPrice, isPending: updatingPrice } = useMutation({
     mutationFn: ({ id, standardPriceINR }: { id: string; standardPriceINR: number }) =>
-      api.inventory.updateItemPrice(id, standardPriceINR, {
-        actorRole: isAdmin ? 'admin' : 'collector',
-        actorUserId: user?.id ?? 'anonymous',
-      }),
-    onSuccess: invalidateInventory,
-  });
-
-  const { mutate: deleteItem } = useMutation({
-    mutationFn: (id: string) => api.inventory.deleteItem(id),
+      api.inventory.updateItemPrice(id, standardPriceINR),
     onSuccess: invalidateInventory,
   });
 
   const { mutate: updateSale, isPending: updatingSale } = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Partial<Omit<SaleRecord, 'id'>> }) =>
-      api.inventory.updateSale(id, payload, {
-        actorRole: isAdmin ? 'admin' : 'collector',
-        actorUserId: user?.id ?? 'anonymous',
-      }),
-    onSuccess: invalidateInventory,
-  });
-
-  const { mutate: deleteSale } = useMutation({
-    mutationFn: (id: string) =>
-      api.inventory.deleteSale(id, {
-        actorRole: isAdmin ? 'admin' : 'collector',
-        actorUserId: user?.id ?? 'anonymous',
-      }),
-    onSuccess: invalidateInventory,
+    mutationFn: ({ id, payload }: { id: string; payload: { inventoryItemId: string; quantitySold: number; soldAt: string } }) =>
+      api.sales.updateDraft(id, payload),
+    onSuccess: (updated) => {
+      setLatestDraft(updated);
+    },
   });
 
   const { mutate: createSaleDraft, isPending: creatingSaleDraft } = useMutation({
-    mutationFn: (input: { inventoryItemId: string; quantitySold: number; soldAt: string; requestedByUserId: string }) =>
-      api.inventory.createSaleDraft(input),
-    onSuccess: invalidateInventory,
+    mutationFn: (input: { inventoryItemId: string; quantitySold: number; soldAt: string }) => api.sales.createDraft(input),
+    onSuccess: (created) => {
+      setLatestDraft(created);
+    },
   });
 
   const { mutate: submitSaleForApproval, isPending: submittingSale } = useMutation({
-    mutationFn: ({ id }: { id: string }) =>
-      api.inventory.submitSaleForApproval(id, {
-        actorRole: isAdmin ? 'admin' : 'collector',
-        actorUserId: user?.id ?? 'anonymous',
-      }),
-    onSuccess: invalidateInventory,
+    mutationFn: ({ id }: { id: string }) => api.sales.submitDraft(id),
+    onSuccess: (submitted) => {
+      setLatestDraft(submitted);
+    },
   });
 
-  const isSubmitting = updatingItem || updatingSale || updatingPrice;
-
-  function openItemEditor(item: InventoryItem) {
-    setItemForm(item);
-    setEditTarget({ type: 'item', value: item });
-  }
+  const isSubmitting = updatingSale || updatingPrice;
 
   function openSaleEditor(sale: SaleRecord) {
     setSaleForm(sale);
@@ -129,31 +84,14 @@ export function InventoryPage() {
   function handleSaveEdit() {
     if (!editTarget) return;
 
-    if (editTarget.type === 'item') {
-      updateItem(
-        {
-          id: editTarget.value.id,
-          payload: {
-            name: itemForm.name,
-            category: itemForm.category,
-            quantityKg: itemForm.quantityKg,
-            unit: itemForm.unit,
-          },
-        },
-        { onSuccess: closeModal }
-      );
-      return;
-    }
-
     if (editTarget.type === 'sale') {
       updateSale(
         {
           id: editTarget.value.id,
           payload: {
-            inventoryItemId: saleForm.inventoryItemId,
-            quantitySold: saleForm.quantitySold,
-            revenueINR: saleForm.revenueINR,
-            soldAt: saleForm.soldAt,
+            inventoryItemId: saleForm.inventoryItemId ?? editTarget.value.inventoryItemId,
+            quantitySold: saleForm.quantitySold ?? editTarget.value.quantitySold,
+            soldAt: saleForm.soldAt ?? editTarget.value.soldAt,
           },
         },
         { onSuccess: closeModal }
@@ -171,27 +109,17 @@ export function InventoryPage() {
   }
 
   function handleCreateSaleDraft() {
-    if (!user) return;
-    createSaleDraft({
-      ...createSaleForm,
-      requestedByUserId: user.id,
-    });
-  }
-
-  function canManageSale(sale: SaleRecord) {
     if (!user) return false;
-    if (isAdmin) return sale.approvalStatus !== 'approved';
-    return sale.requestedByUserId === user.id && sale.approvalStatus !== 'approved';
+    createSaleDraft(createSaleForm);
   }
 
   const modalTitle = useMemo(() => {
     if (!editTarget) return '';
-    if (editTarget.type === 'item') return `Edit Item ${editTarget.value.id}`;
     if (editTarget.type === 'sale') return `Edit Sale ${editTarget.value.id}`;
     return `Update Standard Price ${editTarget.value.id}`;
   }, [editTarget]);
 
-  const totalRevenue = sales?.reduce((sum, sale) => sum + sale.revenueINR, 0) ?? 0;
+  const totalRevenue = latestDraft?.revenueINR ?? 0;
   const recycledProducts = (items ?? []).filter((item) => item.category === 'recycled-product');
   const rawWasteItems = (items ?? []).filter((item) => item.category === 'raw-waste');
 
@@ -205,7 +133,7 @@ export function InventoryPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Recycled Products" value={`${recycledProducts.length}`} />
         <KpiCard label="Raw Waste Entries" value={`${rawWasteItems.length}`} />
-        <KpiCard label="Pending Approvals" value={`${(sales ?? []).filter((sale) => sale.approvalStatus === 'pending_approval').length}`} />
+        <KpiCard label="Pending Approvals" value={latestDraft?.approvalStatus === 'pending_approval' ? '1' : '0'} />
         <KpiCard label="Revenue (INR)" value={`₹${totalRevenue.toLocaleString('en-IN')}`} />
       </div>
 
@@ -317,13 +245,7 @@ export function InventoryPage() {
                           </button>
                         )}
                         {isAdmin ? (
-                          <CrudActions
-                            onEdit={() => openItemEditor(item)}
-                            onDelete={() => {
-                              if (!window.confirm(`Delete item ${item.id}?`)) return;
-                              deleteItem(item.id);
-                            }}
-                          />
+                          <span className="text-xs text-slate-500">Price update only</span>
                         ) : (
                           <span className="text-xs text-slate-500">View only</span>
                         )}
@@ -339,64 +261,41 @@ export function InventoryPage() {
 
       <div>
         <h2 className="mb-3 text-lg font-medium">Sales Records</h2>
-        {loadingSales ? (
-          <p className="text-slate-400">Loading...</p>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/75 shadow-lg shadow-slate-950/30">
-            <table className="w-full text-sm text-slate-100">
-              <thead className="bg-slate-800 text-xs uppercase text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Sale ID</th>
-                  <th className="px-4 py-3 text-left">Item ID</th>
-                  <th className="px-4 py-3 text-left">Qty Sold</th>
-                  <th className="px-4 py-3 text-left">Revenue (INR)</th>
-                  <th className="px-4 py-3 text-left">Date</th>
-                  <th className="px-4 py-3 text-left">Approval</th>
-                  <th className="px-4 py-3 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(sales ?? []).map((sale) => (
-                  <tr key={sale.id} className="border-b border-slate-800 hover:bg-slate-800/50">
-                    <td className="px-4 py-3 font-mono text-slate-400">{sale.id}</td>
-                    <td className="px-4 py-3">{sale.inventoryItemId}</td>
-                    <td className="px-4 py-3">{sale.quantitySold}</td>
-                    <td className="px-4 py-3">₹{sale.revenueINR.toLocaleString('en-IN')}</td>
-                    <td className="px-4 py-3">{new Date(sale.soldAt).toLocaleDateString('en-IN')}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge variant={SALE_STATUS_VARIANT[sale.approvalStatus]}>{sale.approvalStatus}</StatusBadge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        {sale.approvalStatus === 'draft' && canManageSale(sale) && (
-                          <button
-                            type="button"
-                            disabled={submittingSale}
-                            onClick={() => submitSaleForApproval({ id: sale.id })}
-                            className="rounded bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
-                          >
-                            Send for Approval
-                          </button>
-                        )}
-                        {sale.approvalStatus === 'approved' ? (
-                          <span className="text-xs text-slate-500">Locked after approval</span>
-                        ) : canManageSale(sale) ? (
-                          <CrudActions
-                            onEdit={() => openSaleEditor(sale)}
-                            onDelete={() => {
-                              if (!window.confirm(`Delete sale ${sale.id}?`)) return;
-                              deleteSale(sale.id);
-                            }}
-                          />
-                        ) : (
-                          <span className="text-xs text-slate-500">View only</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="rounded-xl border border-amber-700/40 bg-amber-950/20 p-4 text-sm text-amber-200">
+          Sales history is not shown yet because the backend does not expose GET /api/inventory/sales.
+        </div>
+        {latestDraft && (
+          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/75 p-4 text-sm text-slate-200 shadow-lg shadow-slate-950/30">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="space-y-1">
+                <p className="font-medium">Latest Draft: {latestDraft.id}</p>
+                <p>Item {latestDraft.inventoryItemId} | Qty {latestDraft.quantitySold} | ₹{latestDraft.revenueINR}</p>
+                <StatusBadge variant={latestDraft.approvalStatus === 'pending_approval' ? 'warning' : latestDraft.approvalStatus === 'approved' ? 'success' : 'info'}>
+                  {latestDraft.approvalStatus}
+                </StatusBadge>
+              </div>
+              {latestDraft.approvalStatus === 'draft' ? (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openSaleEditor(latestDraft)}
+                    className="rounded border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800"
+                  >
+                    Edit Draft
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submittingSale}
+                    onClick={() => submitSaleForApproval({ id: latestDraft.id })}
+                    className="rounded bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    Send for Approval
+                  </button>
+                </div>
+              ) : latestDraft.approvalStatus === 'approved' ? (
+                <span className="text-xs text-slate-500">Locked after approval</span>
+              ) : null}
+            </div>
           </div>
         )}
       </div>
@@ -425,57 +324,7 @@ export function InventoryPage() {
           </>
         }
       >
-        {editTarget?.type === 'item' ? (
-          <div className="space-y-3">
-            <div>
-              <label className="mb-1 block text-xs text-slate-400">Item Name</label>
-              <input
-                type="text"
-                value={itemForm.name ?? ''}
-                onChange={(event) => setItemForm((prev) => ({ ...prev, name: event.target.value }))}
-                className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-xs text-slate-400">Category</label>
-                <select
-                  value={itemForm.category ?? 'raw-waste'}
-                  onChange={(event) =>
-                    setItemForm((prev) => ({ ...prev, category: event.target.value as InventoryItem['category'] }))
-                  }
-                  className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-                >
-                  <option value="raw-waste">raw-waste</option>
-                  <option value="recycled-product">recycled-product</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-slate-400">Unit</label>
-                <select
-                  value={itemForm.unit ?? 'kg'}
-                  onChange={(event) =>
-                    setItemForm((prev) => ({ ...prev, unit: event.target.value as InventoryItem['unit'] }))
-                  }
-                  className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-                >
-                  <option value="kg">kg</option>
-                  <option value="units">units</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-slate-400">Quantity</label>
-              <input
-                type="number"
-                min={0}
-                value={itemForm.quantityKg ?? 0}
-                onChange={(event) => setItemForm((prev) => ({ ...prev, quantityKg: Number(event.target.value) }))}
-                className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-              />
-            </div>
-          </div>
-        ) : editTarget?.type === 'sale' ? (
+        {editTarget?.type === 'sale' ? (
           <div className="space-y-3">
             <div>
               <label className="mb-1 block text-xs text-slate-400">Item ID</label>
@@ -502,8 +351,8 @@ export function InventoryPage() {
                 <input
                   type="number"
                   min={0}
-                  value={saleForm.revenueINR ?? 0}
-                  onChange={(event) => setSaleForm((prev) => ({ ...prev, revenueINR: Number(event.target.value) }))}
+                  value={editTarget.value.revenueINR}
+                  readOnly
                   className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
                 />
               </div>
