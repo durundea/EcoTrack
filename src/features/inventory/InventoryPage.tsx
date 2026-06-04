@@ -7,6 +7,7 @@ import { PageHeader } from '../../shared/ui/PageHeader';
 import { Modal } from '../../shared/ui/Modal';
 import type { InventoryItem, SaleRecord } from '../../shared/api/contracts';
 import { getSession } from '../auth/sessionStore';
+import { buildSalesRows, filterSalesRows } from './salesRecords';
 
 type EditTarget =
   | { type: 'sale'; value: SaleRecord }
@@ -23,10 +24,20 @@ export function InventoryPage() {
     queryFn: () => api.inventory.getItems(),
   });
 
+  const {
+    data: sales,
+    isLoading: loadingSales,
+    isError: hasSalesError,
+  } = useQuery({
+    queryKey: ['inventory', 'sales'],
+    queryFn: () => api.sales.list(),
+  });
+
   const [editTarget, setEditTarget] = useState<EditTarget>(null);
   const [saleForm, setSaleForm] = useState<Partial<SaleRecord>>({});
   const [priceForm, setPriceForm] = useState<number>(0);
   const [latestDraft, setLatestDraft] = useState<SaleRecord | null>(null);
+  const [salesSearch, setSalesSearch] = useState('');
   const [createSaleForm, setCreateSaleForm] = useState({
     inventoryItemId: '',
     quantitySold: 1,
@@ -122,6 +133,8 @@ export function InventoryPage() {
   const totalRevenue = latestDraft?.revenueINR ?? 0;
   const recycledProducts = (items ?? []).filter((item) => item.category === 'recycled-product');
   const rawWasteItems = (items ?? []).filter((item) => item.category === 'raw-waste');
+  const salesRows = useMemo(() => buildSalesRows(sales ?? [], items ?? []), [sales, items]);
+  const filteredSalesRows = useMemo(() => filterSalesRows(salesRows, salesSearch), [salesRows, salesSearch]);
 
   return (
     <div className="space-y-8">
@@ -261,8 +274,57 @@ export function InventoryPage() {
 
       <div>
         <h2 className="mb-3 text-lg font-medium">Sales Records</h2>
-        <div className="rounded-xl border border-amber-700/40 bg-amber-950/20 p-4 text-sm text-amber-200">
-          Sales history is not shown yet because the backend does not expose GET /api/inventory/sales.
+        <div className="rounded-xl border border-slate-800 bg-slate-900/75 p-4 shadow-lg shadow-slate-950/30">
+          <div className="mb-4">
+            <label htmlFor="sales-search" className="mb-1 block text-xs text-slate-400">Search Sales</label>
+            <input
+              id="sales-search"
+              type="text"
+              value={salesSearch}
+              onChange={(event) => setSalesSearch(event.target.value)}
+              placeholder="Search by sale ID or item name"
+              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+            />
+          </div>
+
+          {loadingSales ? (
+            <p className="text-sm text-slate-400">Loading sales records...</p>
+          ) : hasSalesError ? (
+            <p className="text-sm text-rose-300">Unable to load sales records.</p>
+          ) : salesRows.length === 0 ? (
+            <p className="text-sm text-slate-400">No sales records available.</p>
+          ) : filteredSalesRows.length === 0 ? (
+            <p className="text-sm text-slate-400">No sales records match your search.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/75">
+              <table className="w-full text-sm text-slate-100">
+                <thead className="bg-slate-800 text-xs uppercase text-slate-400">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Sale ID</th>
+                    <th className="px-4 py-3 text-left">Item</th>
+                    <th className="px-4 py-3 text-left">Quantity</th>
+                    <th className="px-4 py-3 text-left">Revenue (INR)</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSalesRows.map((row) => (
+                    <tr key={row.id} className="border-b border-slate-800 hover:bg-slate-800/50">
+                      <td className="px-4 py-3 font-mono text-slate-300">{row.id}</td>
+                      <td className="px-4 py-3">{row.itemName}</td>
+                      <td className="px-4 py-3">{row.quantitySold}</td>
+                      <td className="px-4 py-3">₹{row.revenueINR.toLocaleString('en-IN')}</td>
+                      <td className="px-4 py-3">
+                        <StatusBadge variant={row.approvalStatus === 'pending_approval' ? 'warning' : row.approvalStatus === 'approved' ? 'success' : 'info'}>
+                          {row.approvalStatus}
+                        </StatusBadge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
         {latestDraft && (
           <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/75 p-4 text-sm text-slate-200 shadow-lg shadow-slate-950/30">

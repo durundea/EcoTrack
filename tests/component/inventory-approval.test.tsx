@@ -32,20 +32,30 @@ describe('inventory approval workflow', () => {
       },
     });
 
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify([
-          { id: 'INV-001', name: 'Compost', category: 'recycledProduct', quantityKg: 40, unit: 'kg', standardPriceInr: 60 },
-        ]),
-        { status: 200 }
-      )
-    );
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const pathname = new URL(String(input)).pathname;
+
+      if (pathname === '/api/inventory/items') {
+        return new Response(
+          JSON.stringify([
+            { id: 'INV-001', name: 'Compost', category: 'recycledProduct', quantityKg: 40, unit: 'kg', standardPriceInr: 60 },
+          ]),
+          { status: 200 }
+        );
+      }
+
+      if (pathname === '/api/inventory/sales') {
+        return new Response(JSON.stringify([]), { status: 200 });
+      }
+
+      return new Response('Not Found', { status: 404 });
+    });
 
     renderInventory();
 
     expect(await screen.findByRole('button', { name: /create sale draft/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /update price/i })).not.toBeInTheDocument();
-    expect(await screen.findByText(/backend does not expose get \/api\/inventory\/sales/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /sales records/i })).toBeInTheDocument();
   });
 
   it('shows admin price update action and hides unsupported item edit actions', async () => {
@@ -59,14 +69,24 @@ describe('inventory approval workflow', () => {
       },
     });
 
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify([
-          { id: 'INV-001', name: 'Compost', category: 'recycledProduct', quantityKg: 40, unit: 'kg', standardPriceInr: 60 },
-        ]),
-        { status: 200 }
-      )
-    );
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const pathname = new URL(String(input)).pathname;
+
+      if (pathname === '/api/inventory/items') {
+        return new Response(
+          JSON.stringify([
+            { id: 'INV-001', name: 'Compost', category: 'recycledProduct', quantityKg: 40, unit: 'kg', standardPriceInr: 60 },
+          ]),
+          { status: 200 }
+        );
+      }
+
+      if (pathname === '/api/inventory/sales') {
+        return new Response(JSON.stringify([]), { status: 200 });
+      }
+
+      return new Response('Not Found', { status: 404 });
+    });
 
     renderInventory();
 
