@@ -12,6 +12,50 @@ describe('salesService', () => {
     vi.restoreAllMocks();
   });
 
+  it('lists sales records and gets a record by id using backend endpoints', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify([
+        {
+          id: 'SALE-201',
+          inventoryItemId: 'INV-010',
+          quantitySold: 3,
+          revenueInr: 450,
+          soldAtUtc: '2026-06-01T00:00:00Z',
+          approvalStatus: 'approved',
+          requestedByUserId: 'U-002',
+          approvedByUserId: 'U-001',
+          approvedAtUtc: '2026-06-01T01:00:00Z',
+        },
+      ]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        id: 'SALE-201',
+        inventoryItemId: 'INV-010',
+        quantitySold: 3,
+        revenueInr: 450,
+        soldAtUtc: '2026-06-01T00:00:00Z',
+        approvalStatus: 'approved',
+        requestedByUserId: 'U-002',
+        approvedByUserId: 'U-001',
+        approvedAtUtc: '2026-06-01T01:00:00Z',
+      }), { status: 200 }));
+
+    const sales = await salesService.list();
+    const sale = await salesService.getById('SALE-201');
+
+    expect(sales).toHaveLength(1);
+    expect(sales[0]).toMatchObject({
+      id: 'SALE-201',
+      approvalStatus: 'approved',
+      revenueINR: 450,
+    });
+
+    expect(sale).toMatchObject({
+      id: 'SALE-201',
+      approvalStatus: 'approved',
+      revenueINR: 450,
+    });
+  });
+
   it('creates and submits a draft sale using backend endpoints', async () => {
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(JSON.stringify({

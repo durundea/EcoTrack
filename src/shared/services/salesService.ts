@@ -37,6 +37,13 @@ function toSaleRecord(dto: SaleRecordDto): SaleRecord {
 }
 
 export const salesService = {
+  async list(): Promise<SaleRecord[]> {
+    const dto = await requestJson<SaleRecordDto[]>('/api/inventory/sales');
+    return dto.map(toSaleRecord);
+  },
+  async getById(id: string): Promise<SaleRecord> {
+    return toSaleRecord(await requestJson<SaleRecordDto>(`/api/inventory/sales/${id}`));
+  },
   async createDraft(input: { inventoryItemId: string; quantitySold: number; soldAt: string }): Promise<SaleRecord> {
     const dto = await requestJson<SaleRecordDto>('/api/inventory/sales', {
       method: 'POST',
