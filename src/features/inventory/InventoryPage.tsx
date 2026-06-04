@@ -48,6 +48,10 @@ export function InventoryPage() {
     queryClient.invalidateQueries({ queryKey: ['inventory', 'items'] });
   };
 
+  const invalidateSales = () => {
+    queryClient.invalidateQueries({ queryKey: ['inventory', 'sales'] });
+  };
+
   const { mutate: updateItemPrice, isPending: updatingPrice } = useMutation({
     mutationFn: ({ id, standardPriceINR }: { id: string; standardPriceINR: number }) =>
       api.inventory.updateItemPrice(id, standardPriceINR),
@@ -59,6 +63,7 @@ export function InventoryPage() {
       api.sales.updateDraft(id, payload),
     onSuccess: (updated) => {
       setLatestDraft(updated);
+      invalidateSales();
     },
   });
 
@@ -66,6 +71,7 @@ export function InventoryPage() {
     mutationFn: (input: { inventoryItemId: string; quantitySold: number; soldAt: string }) => api.sales.createDraft(input),
     onSuccess: (created) => {
       setLatestDraft(created);
+      invalidateSales();
     },
   });
 
@@ -73,6 +79,7 @@ export function InventoryPage() {
     mutationFn: ({ id }: { id: string }) => api.sales.submitDraft(id),
     onSuccess: (submitted) => {
       setLatestDraft(submitted);
+      invalidateSales();
     },
   });
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { InventoryPage } from '../../src/features/inventory/InventoryPage';
 import { Providers } from '../../src/app/providers';
@@ -13,6 +13,17 @@ function renderInventory() {
       </MemoryRouter>
     </Providers>
   );
+}
+
+async function findSalesTable() {
+  const salesIdHeader = await screen.findByRole('columnheader', { name: /sale id/i });
+  const salesTable = salesIdHeader.closest('table');
+
+  if (!salesTable) {
+    throw new Error('Sales table not found');
+  }
+
+  return salesTable;
 }
 
 describe('inventory sales records', () => {
@@ -75,9 +86,10 @@ describe('inventory sales records', () => {
     renderInventory();
 
     expect(await screen.findByRole('heading', { name: /sales records/i })).toBeInTheDocument();
-    expect(await screen.findByText('SALE-001')).toBeInTheDocument();
-    expect((await screen.findAllByText('Compost')).length).toBeGreaterThan(0);
-    expect(await screen.findByText('INV-404')).toBeInTheDocument();
+    const salesTable = await findSalesTable();
+    expect(within(salesTable).getByText('SALE-001')).toBeInTheDocument();
+    expect(within(salesTable).getByText('Compost')).toBeInTheDocument();
+    expect(within(salesTable).getByText('INV-404')).toBeInTheDocument();
   });
 
   it('filters sales rows by search query and shows a no-results state', async () => {
@@ -124,16 +136,93 @@ describe('inventory sales records', () => {
 
     renderInventory();
 
-    expect(await screen.findByText('SALE-001')).toBeInTheDocument();
+    const salesTable = await findSalesTable();
+    expect(within(salesTable).getByText('SALE-001')).toBeInTheDocument();
     const searchInput = screen.getByRole('textbox', { name: /search sales/i });
 
     fireEvent.change(searchInput, { target: { value: 'sale-002' } });
     await waitFor(() => {
-      expect(screen.getByText('SALE-002')).toBeInTheDocument();
-      expect(screen.queryByText('SALE-001')).not.toBeInTheDocument();
+      const filteredSalesTable = screen.getByRole('columnheader', { name: /sale id/i }).closest('table');
+      expect(filteredSalesTable).not.toBeNull();
+      expect(within(filteredSalesTable as HTMLTableElement).getByText('SALE-002')).toBeInTheDocument();
+      expect(within(filteredSalesTable as HTMLTableElement).queryByText('SALE-001')).not.toBeInTheDocument();
     });
 
     fireEvent.change(searchInput, { target: { value: 'unknown' } });
     expect(await screen.findByText(/no sales records match your search/i)).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /sale id/i })).not.toBeInTheDocument();
+  });
+
+  it('refreshes sales records list after creating a sale draft', async () => {
+    let salesListCalls = 0;
+    let draftCreated = false;
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const requestUrl = typeof input === 'string' ? input : input.url;
+      const pathname = new URL(requestUrl).pathname;
+      const method = init?.method ?? 'GET';
+
+      if (pathname === '/api/inventory/items') {
+        return new Response(
+          JSON.stringify([
+            { id: 'INV-001', name: 'Compost', category: 'recycledProduct', quantityKg: 40, unit: 'kg', standardPriceInr: 60 },
+          ]),
+          { status: 200 }
+        );
+      }
+
+      if (pathname === '/api/inventory/sales' && method === 'GET') {
+        salesListCalls += 1;
+
+        if (!draftCreated) {
+          return new Response(JSON.stringify([]), { status: 200 });
+        }
+
+        return new Response(
+          JSON.stringify([
+            {
+              id: 'SALE-900',
+              inventoryItemId: 'INV-001',
+              quantitySold: 4,
+              revenueInr: 240,
+              soldAtUtc: '2026-06-03T00:00:00Z',
+              approvalStatus: 'draft',
+              requestedByUserId: 'U-002',
+            },
+          ]),
+          { status: 200 }
+        );
+      }
+
+      if (pathname === '/api/inventory/sales' && method === 'POST') {
+        draftCreated = true;
+        return new Response(
+          JSON.stringify({
+            id: 'SALE-900',
+            inventoryItemId: 'INV-001',
+            quantitySold: 4,
+            revenueInr: 240,
+            soldAtUtc: '2026-06-03T00:00:00Z',
+            approvalStatus: 'draft',
+            requestedByUserId: 'U-002',
+          }),
+          { status: 200 }
+        );
+      }
+
+      return new Response('Not Found', { status: 404 });
+    });
+
+    renderInventory();
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'INV-001' } });
+    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: 4 } });
+    fireEvent.click(screen.getByRole('button', { name: /create sale draft/i }));
+
+    const salesTable = await findSalesTable();
+    await waitFor(() => {
+      expect(within(salesTable).getByText('SALE-900')).toBeInTheDocument();
+    });
+    expect(salesListCalls).toBeGreaterThanOrEqual(1);
   });
 });
