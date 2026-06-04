@@ -13,10 +13,10 @@ describe('salesService', () => {
   });
 
   it('lists sales records and gets a record by id using backend endpoints', async () => {
-    vi.spyOn(globalThis, 'fetch')
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(JSON.stringify([
         {
-          id: 'SALE-201',
+          id: 'SALE-101',
           inventoryItemId: 'INV-010',
           quantitySold: 3,
           revenueInr: 450,
@@ -28,7 +28,7 @@ describe('salesService', () => {
         },
       ]), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({
-        id: 'SALE-201',
+        id: 'SALE-101',
         inventoryItemId: 'INV-010',
         quantitySold: 3,
         revenueInr: 450,
@@ -40,20 +40,31 @@ describe('salesService', () => {
       }), { status: 200 }));
 
     const sales = await salesService.list();
-    const sale = await salesService.getById('SALE-201');
+    const sale = await salesService.getById('SALE-101');
 
     expect(sales).toHaveLength(1);
     expect(sales[0]).toMatchObject({
-      id: 'SALE-201',
+      id: 'SALE-101',
       approvalStatus: 'approved',
       revenueINR: 450,
     });
 
     expect(sale).toMatchObject({
-      id: 'SALE-201',
+      id: 'SALE-101',
       approvalStatus: 'approved',
       revenueINR: 450,
     });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+    const [firstUrl, firstInit] = fetchSpy.mock.calls[0];
+    const [secondUrl, secondInit] = fetchSpy.mock.calls[1];
+
+    expect(new URL(String(firstUrl)).pathname).toBe('/api/inventory/sales');
+    expect(firstInit?.method ?? 'GET').toBe('GET');
+
+    expect(new URL(String(secondUrl)).pathname).toBe('/api/inventory/sales/SALE-101');
+    expect(secondInit?.method ?? 'GET').toBe('GET');
   });
 
   it('creates and submits a draft sale using backend endpoints', async () => {
