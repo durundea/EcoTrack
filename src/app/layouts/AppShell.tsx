@@ -16,7 +16,7 @@ const navItems = [
 
 export function AppShell({ children }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const user = useMemo(() => getSession(), []);
+  const user = useMemo(() => getSession()?.user ?? null, []);
 
   function handleLogout() {
     clearSession();

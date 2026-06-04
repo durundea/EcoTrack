@@ -1,25 +1,9 @@
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { mapApiError } from '../../shared/errors/mapApiError';
+import { authService } from '../../shared/services';
 import { setSession } from './sessionStore';
-import type { AuthUser } from './types';
-
-// Mock credentials for development (replaced by real API adapter later)
-const MOCK_USERS: Record<string, AuthUser & { password: string }> = {
-  'admin@ecotrack.local': {
-    id: 'U-001',
-    name: 'Admin User',
-    role: 'admin',
-    email: 'admin@ecotrack.local',
-    password: 'admin123',
-  },
-  'collector@ecotrack.local': {
-    id: 'U-002',
-    name: 'Field Collector',
-    role: 'collector',
-    email: 'collector@ecotrack.local',
-    password: 'collector123',
-  },
-};
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -27,17 +11,21 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
+  const loginMutation = useMutation({
+    mutationFn: () => authService.login({ email, password }),
+    onSuccess: (session) => {
+      setSession(session);
+      navigate(session.user.role === 'admin' ? '/dashboard' : '/collection');
+    },
+    onError: (err: unknown) => {
+      setError(mapApiError(err).message);
+    },
+  });
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    const user = MOCK_USERS[email];
-    if (!user || user.password !== password) {
-      setError('Invalid email or password.');
-      return;
-    }
-    const { password: _, ...authUser } = user;
-    setSession(authUser);
-    navigate(authUser.role === 'admin' ? '/dashboard' : '/collection');
+    loginMutation.mutate();
   }
 
   return (
@@ -76,9 +64,10 @@ export function LoginPage() {
           {error && <p className="text-sm text-red-400">{error}</p>}
           <button
             type="submit"
-            className="w-full rounded bg-brand-600 py-2 font-semibold text-white hover:bg-brand-700 transition-colors"
+            disabled={loginMutation.isPending}
+            className="w-full rounded bg-brand-600 py-2 font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
           >
-            Sign in
+            {loginMutation.isPending ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
       </div>
