@@ -90,6 +90,7 @@ describe('inventory approval workflow', () => {
 
     renderInventory();
 
+    expect(await screen.findByRole('button', { name: /create sale draft/i })).toBeInTheDocument();
     const priceButtons = await screen.findAllByRole('button', { name: /update price/i });
     expect(priceButtons.length).toBeGreaterThan(0);
     expect(await screen.findByText(/price update only/i)).toBeInTheDocument();
