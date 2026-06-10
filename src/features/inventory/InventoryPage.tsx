@@ -41,7 +41,7 @@ export function InventoryPage() {
   const [createSaleForm, setCreateSaleForm] = useState({
     inventoryItemId: '',
     quantitySold: 1,
-    soldAt: new Date().toISOString().slice(0, 10),
+    soldAt: new Date().toISOString(),
   });
 
   const invalidateInventory = () => {
@@ -157,8 +157,13 @@ export function InventoryPage() {
         <KpiCard label="Revenue (INR)" value={`₹${totalRevenue.toLocaleString('en-IN')}`} />
       </div>
 
-      {!isAdmin && <div className="rounded-xl border border-slate-800 bg-slate-900/75 p-5 shadow-lg shadow-slate-950/30">
+      <div className="rounded-xl border border-slate-800 bg-slate-900/75 p-5 shadow-lg shadow-slate-950/30">
         <h2 className="mb-3 text-lg font-medium">Create Sale Draft</h2>
+        <p className="mb-3 text-xs text-slate-400">
+          {isAdmin
+            ? 'Admin override: use draft creation only for corrections or manual operational entries.'
+            : 'Collector workflow: create a draft, then send it for approval.'}
+        </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <div>
             <label className="mb-1 block text-xs text-slate-400">Item</label>
@@ -175,7 +180,7 @@ export function InventoryPage() {
               <option value="">Select item</option>
               {(items ?? []).map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.id} | {item.name}
+                  {item.name}
                 </option>
               ))}
             </select>
@@ -199,11 +204,11 @@ export function InventoryPage() {
             <label className="mb-1 block text-xs text-slate-400">Sold Date</label>
             <input
               type="date"
-              value={createSaleForm.soldAt}
+              value={createSaleForm.soldAt.slice(0, 10)}
               onChange={(event) =>
                 setCreateSaleForm((prev) => ({
                   ...prev,
-                  soldAt: event.target.value,
+                  soldAt: new Date(event.target.value).toISOString(),
                 }))
               }
               className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
@@ -220,7 +225,7 @@ export function InventoryPage() {
             </button>
           </div>
         </div>
-      </div>}
+      </div>
 
       <div>
         <h2 className="mb-3 text-lg font-medium">Stock Ledger</h2>
@@ -431,7 +436,7 @@ export function InventoryPage() {
               <input
                 type="date"
                 value={(saleForm.soldAt ?? '').slice(0, 10)}
-                onChange={(event) => setSaleForm((prev) => ({ ...prev, soldAt: event.target.value }))}
+                onChange={(event) => setSaleForm((prev) => ({ ...prev, soldAt: new Date(event.target.value).toISOString() }))}
                 className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
               />
             </div>
