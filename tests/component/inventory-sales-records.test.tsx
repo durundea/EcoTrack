@@ -158,7 +158,12 @@ describe('inventory sales records', () => {
     let draftCreated = false;
 
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      const requestUrl = typeof input === 'string' ? input : input.url;
+      const requestUrl =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
       const pathname = new URL(requestUrl).pathname;
       const method = init?.method ?? 'GET';
 
