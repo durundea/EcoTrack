@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { convertDashboardRangeToUtcWindow } from '../../src/features/dashboard/dateRangeConverter';
+import { convertDashboardRangeToUtcWindow } from '../../src/features/dashboard/dateRangeConverter.ts';
 
 const previousTz = process.env.TZ;
 

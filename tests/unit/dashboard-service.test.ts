@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearSession } from '../../src/features/auth/sessionStore';
-import { dashboardService } from '../../src/features/dashboard/dashboardService';
+import { dashboardService } from '../../src/features/dashboard/dashboardService.ts';
 
 describe('dashboardService', () => {
   beforeEach(() => {
