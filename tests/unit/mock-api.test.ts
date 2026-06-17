@@ -12,9 +12,13 @@ describe('api facade composition', () => {
     expect(result.length).toBeGreaterThan(0);
   });
 
-  it('returns dashboard summary with co2 reduction', async () => {
+  it('returns dashboard summary with co2 reduction and pending sales approvals metadata', async () => {
     const result = await api.dashboard.getSummary();
     expect(result.co2ReductionKg).toBeGreaterThan(0);
+    expect(result.pendingSalesApprovals).toBeDefined();
+    expect(typeof result.pendingSalesApprovals.count).toBe('number');
+    expect(typeof result.pendingSalesApprovals.isDataAvailable).toBe('boolean');
+    expect(typeof result.pendingSalesApprovals.message).toBe('string');
   });
 
   it('exposes service-backed auth, inventory, sales, and health modules', () => {
