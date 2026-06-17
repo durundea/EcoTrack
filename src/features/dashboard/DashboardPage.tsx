@@ -11,14 +11,12 @@ import { KpiCard } from '../../shared/ui/KpiCard';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { CrudActions } from '../../shared/ui/CrudActions';
 import { getSession } from '../auth/sessionStore';
-import { usePendingSalesForApproval } from '../inventory/useInventoryApproval';
 
 export function DashboardPage() {
   const user = getSession()?.user ?? null;
   const isAdmin = user?.role === 'admin';
   const [filters, setFilters] = useState<DashboardFilters>(DEFAULT_FILTERS);
   const { data: summary, isLoading } = useDashboardData(filters);
-  const { isUnavailable: approvalQueueUnavailable } = usePendingSalesForApproval();
 
   const categoryBarData = WASTE_CATEGORIES.map((cat) => ({
     name: WASTE_LABELS[cat],
@@ -31,6 +29,15 @@ export function DashboardPage() {
     value: summary?.byCategory[cat] ?? 0,
     fill: WASTE_CHART_COLORS[cat],
   }));
+
+  const pendingSalesApprovals = summary?.pendingSalesApprovals;
+  const pendingApprovalsMessage = pendingSalesApprovals
+    ? !pendingSalesApprovals.isDataAvailable
+      ? (pendingSalesApprovals.message || 'Approval queue is temporarily unavailable.')
+      : pendingSalesApprovals.count > 0
+        ? `${pendingSalesApprovals.count} pending for approval`
+        : 'No pending sales approvals.'
+    : 'Approval data is currently unavailable.';
 
   return (
     <div className="space-y-6">
@@ -78,6 +85,8 @@ export function DashboardPage() {
 
       {isLoading ? (
         <p className="text-slate-400">Loading analytics…</p>
+      ) : !summary ? (
+        <p className="text-slate-400">Dashboard data is currently unavailable.</p>
       ) : (
         <>
           {/* KPI cards */}
@@ -169,7 +178,9 @@ export function DashboardPage() {
               <tbody>
                 {WASTE_CATEGORIES.map((cat) => {
                   const kg = summary!.byCategory[cat];
-                  const share = ((kg / summary!.totalWasteProcessedKg) * 100).toFixed(1);
+                  const share = summary!.totalWasteProcessedKg > 0
+                    ? ((kg / summary!.totalWasteProcessedKg) * 100).toFixed(1)
+                    : '0.0';
                   return (
                     <tr key={cat} className="border-b border-slate-800 hover:bg-slate-800/40">
                       <td className="px-4 py-2">{WASTE_LABELS[cat]}</td>
@@ -188,11 +199,7 @@ export function DashboardPage() {
           {isAdmin && (
             <div className="rounded-xl border border-amber-700/40 bg-amber-950/20 p-5 shadow-lg shadow-slate-950/30">
               <h2 className="mb-2 text-sm font-semibold text-amber-200">Pending Sales Approvals</h2>
-              <p className="text-sm text-amber-100">
-                {approvalQueueUnavailable
-                  ? 'Approval queue is temporarily unavailable because the backend does not yet expose a sales listing endpoint.'
-                  : 'No pending sales approvals.'}
-              </p>
+              <p className="text-sm text-amber-100">{pendingApprovalsMessage}</p>
             </div>
           )}
         </>
