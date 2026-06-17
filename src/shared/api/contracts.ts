@@ -122,10 +122,13 @@ export type DashboardAnalyticsResponse = {
   pendingSalesApprovals: DashboardPendingSalesApprovals;
 };
 
+export type DashboardSummaryPendingApprovals = DashboardPendingSalesApprovals;
+
 export type DashboardSummary = {
   totalWasteProcessedKg: number;
   revenueINR: number;
   recyclingEfficiencyPct: number;
   co2ReductionKg: number;
   byCategory: Record<WasteCategory, number>;
+  pendingSalesApprovals: DashboardSummaryPendingApprovals;
 };

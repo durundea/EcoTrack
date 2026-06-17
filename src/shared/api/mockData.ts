@@ -137,4 +137,9 @@ export const dashboardSummary: DashboardSummary = {
   recyclingEfficiencyPct: 78,
   co2ReductionKg: 920,
   byCategory: { plastic: 480, organic: 620, metal: 310, paper: 270, ewaste: 160 },
+  pendingSalesApprovals: {
+    count: 0,
+    isDataAvailable: false,
+    message: 'Pending approvals unavailable in mock mode.',
+  },
 };
