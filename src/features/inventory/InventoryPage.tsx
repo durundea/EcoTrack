@@ -14,6 +14,23 @@ type EditTarget =
   | { type: 'price'; value: InventoryItem }
   | null;
 
+function formatSoldAtDateTime(soldAt: string): string {
+  const timestamp = new Date(soldAt);
+  if (Number.isNaN(timestamp.getTime())) {
+    return soldAt;
+  }
+
+  return new Intl.DateTimeFormat('en-IN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZoneName: 'short',
+  }).format(timestamp);
+}
+
 export function InventoryPage() {
   const queryClient = useQueryClient();
   const user = useMemo(() => getSession()?.user ?? null, []);
@@ -137,7 +154,10 @@ export function InventoryPage() {
     return `Update Standard Price ${editTarget.value.id}`;
   }, [editTarget]);
 
-  const totalRevenue = latestDraft?.revenueINR ?? 0;
+  const totalRevenue = useMemo(
+    () => (sales ?? []).reduce((sum, sale) => sum + sale.revenueINR, 0),
+    [sales]
+  );
   const recycledProducts = (items ?? []).filter((item) => item.category === 'recycled-product');
   const rawWasteItems = (items ?? []).filter((item) => item.category === 'raw-waste');
   const salesRows = useMemo(() => buildSalesRows(sales ?? [], items ?? []), [sales, items]);
@@ -312,7 +332,7 @@ export function InventoryPage() {
               <table className="w-full text-sm text-slate-100">
                 <thead className="bg-slate-800 text-xs uppercase text-slate-400">
                   <tr>
-                    <th className="px-4 py-3 text-left">Sale ID</th>
+                    <th className="px-4 py-3 text-left">Sold Date/Time (Local)</th>
                     <th className="px-4 py-3 text-left">Item</th>
                     <th className="px-4 py-3 text-left">Quantity</th>
                     <th className="px-4 py-3 text-left">Revenue (INR)</th>
@@ -322,7 +342,7 @@ export function InventoryPage() {
                 <tbody>
                   {filteredSalesRows.map((row) => (
                     <tr key={row.id} className="border-b border-slate-800 hover:bg-slate-800/50">
-                      <td className="px-4 py-3 font-mono text-slate-300">{row.id}</td>
+                      <td className="px-4 py-3 font-mono text-slate-300">{formatSoldAtDateTime(row.soldAt)}</td>
                       <td className="px-4 py-3">{row.itemName}</td>
                       <td className="px-4 py-3">{row.quantitySold}</td>
                       <td className="px-4 py-3">₹{row.revenueINR.toLocaleString('en-IN')}</td>

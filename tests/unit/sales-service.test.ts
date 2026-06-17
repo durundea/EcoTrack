@@ -14,19 +14,25 @@ describe('salesService', () => {
 
   it('lists sales records and gets a record by id using backend endpoints', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(new Response(JSON.stringify([
-        {
-          id: 'SALE-101',
-          inventoryItemId: 'INV-010',
-          quantitySold: 3,
-          revenueInr: 450,
-          soldAtUtc: '2026-06-01T00:00:00Z',
-          approvalStatus: 'approved',
-          requestedByUserId: 'U-002',
-          approvedByUserId: 'U-001',
-          approvedAtUtc: '2026-06-01T01:00:00Z',
-        },
-      ]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        items: [
+          {
+            id: 'SALE-101',
+            inventoryItemId: 'INV-010',
+            quantitySold: 3,
+            revenueInr: 450,
+            soldAtUtc: '2026-06-01T00:00:00Z',
+            approvalStatus: 'approved',
+            requestedByUserId: 'U-002',
+            approvedByUserId: 'U-001',
+            approvedAtUtc: '2026-06-01T01:00:00Z',
+          },
+        ],
+        page: 1,
+        pageSize: 20,
+        totalCount: 1,
+        totalPages: 1,
+      }), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({
         id: 'SALE-101',
         inventoryItemId: 'INV-010',
