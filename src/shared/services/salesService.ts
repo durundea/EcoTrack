@@ -7,17 +7,34 @@ type SaleRecordDto = {
   quantitySold: number;
   revenueInr: number;
   soldAtUtc: string;
-  approvalStatus: 'draft' | 'pendingApproval' | 'approved' | 'rejected';
+  approvalStatus: 'draft' | 'pendingApproval' | 'pending_approval' | 'approved' | 'rejected';
   requestedByUserId: string;
   approvedByUserId?: string;
   approvedAtUtc?: string;
   rejectionReason?: string;
 };
 
+type PaginatedSalesDto = {
+  items: SaleRecordDto[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+};
+
+function extractSaleItems(payload: SaleRecordDto[] | PaginatedSalesDto): SaleRecordDto[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  return payload.items ?? [];
+}
+
 function toSaleRecord(dto: SaleRecordDto): SaleRecord {
   const statusMap: Record<SaleRecordDto['approvalStatus'], SaleApprovalStatus> = {
     draft: 'draft',
     pendingApproval: 'pending_approval',
+    pending_approval: 'pending_approval',
     approved: 'approved',
     rejected: 'rejected',
   };
@@ -38,8 +55,8 @@ function toSaleRecord(dto: SaleRecordDto): SaleRecord {
 
 export const salesService = {
   async list(): Promise<SaleRecord[]> {
-    const dto = await requestJson<SaleRecordDto[]>('/api/inventory/sales');
-    return dto.map(toSaleRecord);
+    const payload = await requestJson<SaleRecordDto[] | PaginatedSalesDto>('/api/inventory/sales');
+    return extractSaleItems(payload).map(toSaleRecord);
   },
   async getById(id: string): Promise<SaleRecord> {
     return toSaleRecord(await requestJson<SaleRecordDto>(`/api/inventory/sales/${id}`));

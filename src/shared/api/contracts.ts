@@ -86,10 +86,49 @@ export type SaleRecord = {
 };
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────
+// These transport DTOs intentionally preserve backend field names and casing.
+// UI-facing code should map them into DashboardSummary before rendering.
+export type DashboardAnalyticsKpis = {
+  totalWasteProcessedKg: number;
+  revenueInr: number;
+  recyclingEfficiencyPercent: number;
+  co2ReductionKg: number;
+};
+
+export type DashboardWasteCategory = {
+  // Backend transport field; mapper normalizes this into known WasteCategory keys.
+  category: string;
+  weightKg: number;
+  sharePercent: number;
+};
+
+export type DashboardPendingSalesApprovals = {
+  count: number;
+  isDataAvailable: boolean;
+  message: string;
+};
+
+export type DashboardAnalyticsRange = {
+  fromUtc: string;
+  toUtc: string;
+  label: string;
+};
+
+export type DashboardAnalyticsResponse = {
+  range: DashboardAnalyticsRange;
+  kpis: DashboardAnalyticsKpis;
+  wasteByCategory: DashboardWasteCategory[];
+  categoryDistribution: DashboardWasteCategory[];
+  pendingSalesApprovals: DashboardPendingSalesApprovals;
+};
+
+export type DashboardSummaryPendingApprovals = DashboardPendingSalesApprovals;
+
 export type DashboardSummary = {
   totalWasteProcessedKg: number;
   revenueINR: number;
   recyclingEfficiencyPct: number;
   co2ReductionKg: number;
   byCategory: Record<WasteCategory, number>;
+  pendingSalesApprovals: DashboardSummaryPendingApprovals;
 };
