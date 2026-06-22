@@ -10,7 +10,15 @@ function useScheduleInvalidator() {
 export function useCollectionSchedule() {
   return useQuery({
     queryKey: ['collection', 'schedule'],
-    queryFn: () => api.collection.getSchedule(),
+    queryFn: async () => (await api.collection.getSchedule()).items,
+  });
+}
+
+export function usePickupAssignmentHistory(pickupId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['collection', 'history', pickupId],
+    queryFn: () => api.collection.getAssignmentHistory(pickupId),
+    enabled,
   });
 }
 
@@ -22,18 +30,39 @@ export function useSegregationDispatches() {
 }
 
 export function useUpdatePickupStatus() {
-  const invalidate = useScheduleInvalidator();
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: PickupStatus }) =>
-      api.collection.updateStatus(id, status),
-    onSuccess: invalidate,
+    mutationFn: ({
+      id,
+      status,
+      assignedCollectorUserId,
+      note,
+      collectedWeightKg,
+    }: {
+      id: string;
+      status: PickupStatus;
+      assignedCollectorUserId?: string;
+      note?: string;
+      collectedWeightKg?: number;
+    }) => api.collection.updateStatus(id, status, { assignedCollectorUserId, note, collectedWeightKg }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['collection', 'schedule'] });
+      queryClient.invalidateQueries({ queryKey: ['collection', 'history', variables.id] });
+    },
   });
 }
 
 export function useCreatePickupTask() {
   const invalidate = useScheduleInvalidator();
   return useMutation({
-    mutationFn: (input: Omit<PickupTask, 'id'>) => api.collection.createTask(input),
+    mutationFn: (input: Omit<PickupTask, 'id'>) =>
+      api.collection.createTask({
+        siteName: input.site,
+        siteAddressText: input.site,
+        scheduledAtUtc: new Date(`${input.scheduledDate}T00:00:00.000Z`).toISOString(),
+        estimatedWeightKg: input.estimatedWeightKg,
+        notes: input.notes ?? '',
+      }),
     onSuccess: invalidate,
   });
 }
@@ -42,7 +71,13 @@ export function useUpdatePickupTask() {
   const invalidate = useScheduleInvalidator();
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: Partial<Omit<PickupTask, 'id'>> }) =>
-      api.collection.updateTask(id, payload),
+      api.collection.updateTask(id, {
+        siteName: payload.site ?? payload.siteName ?? '',
+        siteAddressText: payload.siteAddressText ?? payload.site ?? '',
+        scheduledAtUtc: new Date(`${payload.scheduledDate ?? new Date().toISOString().slice(0, 10)}T00:00:00.000Z`).toISOString(),
+        estimatedWeightKg: payload.estimatedWeightKg ?? 0,
+        notes: payload.notes ?? '',
+      }),
     onSuccess: invalidate,
   });
 }
@@ -50,7 +85,7 @@ export function useUpdatePickupTask() {
 export function useDeletePickupTask() {
   const invalidate = useScheduleInvalidator();
   return useMutation({
-    mutationFn: (id: string) => api.collection.deleteTask(id),
+    mutationFn: (id: string) => api.collection.deleteTask(id, { reason: 'Cancelled from collection page' }),
     onSuccess: invalidate,
   });
 }
@@ -58,8 +93,8 @@ export function useDeletePickupTask() {
 export function useDispatchToSegregation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ pickupTaskId, dispatchedWeightKg }: { pickupTaskId: string; dispatchedWeightKg: number }) =>
-      api.collection.dispatchToSegregation(pickupTaskId, dispatchedWeightKg),
+    mutationFn: ({ pickupTaskId }: { pickupTaskId: string; dispatchedWeightKg: number }) =>
+      api.collection.dispatchToSegregation(pickupTaskId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collection', 'schedule'] });
       queryClient.invalidateQueries({ queryKey: ['collection', 'dispatches'] });

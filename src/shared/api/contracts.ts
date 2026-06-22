@@ -6,13 +6,93 @@ export type PickupStatus = 'scheduled' | 'assigned' | 'collected';
 
 export type PickupTask = {
   id: string;
+  /** @deprecated Use siteName once the collection page is fully migrated. */
   site: string;
   status: PickupStatus;
+  /** @deprecated Use assignedCollectorUserId once the collection page is fully migrated. */
   assignedCollectorId?: string;
+  /** @deprecated Use scheduledAtUtc once the collection page is fully migrated. */
   scheduledDate: string;
   estimatedWeightKg: number;
   lockedAfterCollection?: boolean;
   segregatedWeightKg?: number;
+  // Compatibility fields keep the current collection UI stable while later tasks
+  // migrate row rendering to the richer backend pickup model.
+  pickupCode?: string;
+  siteName?: string;
+  siteAddressText?: string;
+  scheduledAtUtc?: string;
+  collectedWeightKg?: number;
+  assignedCollectorDisplayName?: string;
+  notes?: string;
+  assignmentEvents?: PickupAssignmentEventDto[];
+};
+
+export type PickupAssignmentEventDto = {
+  id: string;
+  pickupTaskId: string;
+  previousCollectorUserId?: string | null;
+  newCollectorUserId?: string | null;
+  changedByUserId?: string | null;
+  changedByDisplayName?: string | null;
+  changedAtUtc: string;
+  note?: string | null;
+};
+
+export type PickupAssignmentHistoryResponseDto = {
+  events: PickupAssignmentEventDto[];
+};
+
+export type PickupTaskDto = {
+  id: string;
+  pickupCode: string;
+  siteName: string;
+  siteAddressText: string;
+  scheduledAtUtc: string;
+  estimatedWeightKg: number;
+  collectedWeightKg: number;
+  status: string;
+  assignedCollectorUserId?: string | null;
+  assignedCollectorDisplayName?: string | null;
+  notes?: string | null;
+  createdByUserId?: string | null;
+  createdAtUtc?: string | null;
+  updatedAtUtc?: string | null;
+  cancelledByUserId?: string | null;
+  cancelledAtUtc?: string | null;
+  cancelReason?: string | null;
+  assignmentEvents?: PickupAssignmentEventDto[];
+};
+
+export type PickupTaskListResponseDto = {
+  items: PickupTaskDto[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+};
+
+export type PickupTaskCreateInputDto = {
+  siteName: string;
+  siteAddressText: string;
+  scheduledAtUtc: string;
+  estimatedWeightKg: number;
+  notes: string;
+};
+
+export type PickupTaskUpdateInputDto = PickupTaskCreateInputDto;
+
+export type PickupTaskAssignInputDto = {
+  assignedCollectorUserId: string;
+  note: string;
+};
+
+export type PickupTaskMarkCollectedInputDto = {
+  collectedWeightKg: number;
+};
+
+export type PickupTaskCancelInputDto = {
+  reason: string;
 };
 
 export type SegregationDispatch = {
