@@ -14,6 +14,7 @@ import { PageHeader } from '../../shared/ui/PageHeader';
 import { CrudActions } from '../../shared/ui/CrudActions';
 import { Modal } from '../../shared/ui/Modal';
 import { getCurrentRole } from '../auth/sessionStore';
+import { PickupHistoryTooltip } from './PickupHistoryTooltip';
 
 const STATUS_LABELS: Record<string, string> = {
   scheduled: 'Scheduled',
@@ -26,6 +27,24 @@ const STATUS_VARIANT: Record<string, 'warning' | 'info' | 'success'> = {
   assigned: 'info',
   collected: 'success',
 };
+
+function formatTaskDateTimeLocal(task: PickupTask): string {
+  const source = task.scheduledAtUtc ?? (task.scheduledDate ? `${task.scheduledDate}T00:00:00Z` : '');
+  const date = new Date(source);
+
+  if (Number.isNaN(date.getTime())) {
+    return task.scheduledDate || '-';
+  }
+
+  return new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
+}
 
 type TaskRowProps = {
   task: PickupTask;
@@ -60,9 +79,9 @@ function TaskRow({
 
   return (
     <tr className="border-b border-slate-800 hover:bg-slate-800/50">
-      <td className="px-4 py-3 font-mono text-sm text-slate-400">{task.id}</td>
+      <td className="px-4 py-3 font-mono text-sm text-slate-400">{formatTaskDateTimeLocal(task)}</td>
       <td className="px-4 py-3">{task.site}</td>
-      <td className="px-4 py-3">{task.scheduledDate}</td>
+      <td className="px-4 py-3">{task.pickupCode || '-'}</td>
       <td className="px-4 py-3">{task.estimatedWeightKg} kg</td>
       <td className="px-4 py-3">
         <StatusBadge variant={STATUS_VARIANT[task.status]}>
@@ -73,9 +92,17 @@ function TaskRow({
         <div className="flex flex-wrap gap-2">
           {task.status === 'scheduled' && (
             <button
-              disabled={isPending}
-              onClick={() => mutate({ id: task.id, status: 'assigned' })}
+              disabled={isPending || !(task.assignedCollectorId ?? '').trim()}
+              onClick={() =>
+                mutate({
+                  id: task.id,
+                  status: 'assigned',
+                  assignedCollectorUserId: task.assignedCollectorId,
+                  note: task.notes || 'Assigned from collection page',
+                })
+              }
               className="rounded bg-brand-600 px-3 py-1 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+              title={task.assignedCollectorId ? 'Assign pickup' : 'Set Assigned Collector ID in edit first'}
             >
               Assign
             </button>
@@ -83,7 +110,13 @@ function TaskRow({
           {task.status === 'assigned' && (
             <button
               disabled={isPending}
-              onClick={() => mutate({ id: task.id, status: 'collected' })}
+              onClick={() =>
+                mutate({
+                  id: task.id,
+                  status: 'collected',
+                  collectedWeightKg: task.estimatedWeightKg,
+                })
+              }
               className="rounded bg-slate-600 px-3 py-1 text-xs font-medium text-white hover:bg-slate-500 disabled:opacity-50"
             >
               Mark Collected
@@ -111,6 +144,7 @@ function TaskRow({
               <span className="text-xs text-slate-500">Available: {dispatchAvailableKg} kg</span>
             </>
           )}
+          <PickupHistoryTooltip pickupId={task.id} />
           {task.status !== 'collected' ? (
             <CrudActions onEdit={() => onEdit(task)} onDelete={() => onDelete(task)} />
           ) : (
@@ -242,9 +276,9 @@ export function CollectionPage() {
         <table className="w-full text-sm text-slate-100">
           <thead className="bg-slate-800 text-xs uppercase text-slate-400">
             <tr>
-              <th className="px-4 py-3 text-left">ID</th>
+              <th className="px-4 py-3 text-left">Date &amp; Time (Local)</th>
               <th className="px-4 py-3 text-left">Site</th>
-              <th className="px-4 py-3 text-left">Date</th>
+              <th className="px-4 py-3 text-left">Pickup Code</th>
               <th className="px-4 py-3 text-left">Est. Weight</th>
               <th className="px-4 py-3 text-left">Status</th>
               <th className="px-4 py-3 text-left">Actions</th>
