@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { ConnectivityBadge } from '../../shared/ui/ConnectivityBadge';
+import { Loader } from '../../shared/ui/Loader';
 import { ErrorBoundary } from '../../shared/errors/ErrorBoundary';
 import { clearSession, getSession } from '../../features/auth/sessionStore';
 
@@ -88,6 +89,7 @@ export function AppShell({ children }: Props) {
       </div>
 
       <ConnectivityBadge />
+      <Loader />
     </div>
   );
 }
