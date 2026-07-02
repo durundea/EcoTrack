@@ -1,12 +1,13 @@
 import { authService, healthService, inventoryService, salesService } from '../services';
-import { dashboard, inventoryLegacy, recycling, segregation } from './legacyClient';
+import { dashboard, inventoryLegacy, recycling } from './legacyClient';
 import { collectionService } from '../../features/collection/collectionService';
+import { segregationService } from '../../features/segregation/segregationService';
 
 export const api = {
   auth: authService,
   health: healthService,
   collection: collectionService,
-  segregation,
+  segregation: segregationService,
   recycling,
   dashboard,
   inventory: {

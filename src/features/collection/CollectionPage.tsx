@@ -161,6 +161,7 @@ export function CollectionPage() {
   const { data: dispatches } = useSegregationDispatches();
   const { mutate: createTask, isPending: creatingTask } = useCreatePickupTask();
   const { mutate: updateTask, isPending: updatingTask } = useUpdatePickupTask();
+  const { mutate: updatePickupStatus, isPending: updatingStatus } = useUpdatePickupStatus();
   const { mutate: deleteTask } = useDeletePickupTask();
   const { mutate: dispatchToSegregation } = useDispatchToSegregation();
 
@@ -172,7 +173,7 @@ export function CollectionPage() {
   const [formState, setFormState] = useState<PickupFormState>(defaultFormState);
   const [dispatchInputs, setDispatchInputs] = useState<Record<string, string>>({});
 
-  const isSubmitting = creatingTask || updatingTask;
+  const isSubmitting = creatingTask || updatingTask || updatingStatus;
 
   function onFormFieldChange<K extends keyof PickupFormState>(key: K, value: PickupFormState[K]) {
     setFormState((prev) => ({ ...prev, [key]: value }));
@@ -210,6 +211,23 @@ export function CollectionPage() {
     };
 
     if (editingTask) {
+      // If assigning a collector to an existing task, use the assignment endpoint
+      const newCollectorId = payload.assignedCollectorId?.trim();
+      const prevCollectorId = editingTask.assignedCollectorId?.trim();
+      
+      if (newCollectorId && newCollectorId !== prevCollectorId) {
+        // Use the assignment endpoint instead of generic update
+        updatePickupStatus(
+          {
+            id: editingTask.id,
+            status: formState.status,
+            assignedCollectorUserId: newCollectorId,
+          },
+          { onSuccess: closeModal }
+        );
+        return;
+      }
+
       updateTask(
         {
           id: editingTask.id,
