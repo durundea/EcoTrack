@@ -116,6 +116,55 @@ export type SegregationBatch = {
   createdAt: string;
 };
 
+export type SegregationBatchListItemDto = {
+  id: string;
+  pickupTaskId: string;
+  batchCode: string;
+  pickupCode: string;
+  status: string;
+  recordedAtUtc?: string | null;
+  recycledAtUtc?: string | null;
+};
+
+export type SegregationBatchListResponseDto = {
+  items: SegregationBatchListItemDto[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+};
+
+export type SegregationBatchDetailDto = {
+  id: string;
+  batchCode: string;
+  status: string;
+  pickupTaskId: string;
+  pickupCode: string;
+  siteName: string;
+  siteAddressText: string;
+  scheduledAtUtc: string;
+  collectedWeightKg: number;
+  plasticKg?: number | null;
+  organicKg?: number | null;
+  metalKg?: number | null;
+  paperKg?: number | null;
+  eWasteKg?: number | null;
+  recordedByUserId?: string | null;
+  recordedAtUtc?: string | null;
+  recycledByUserId?: string | null;
+  recycledAtUtc?: string | null;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+};
+
+export type SegregationRecordInputDto = {
+  plasticKg: number;
+  organicKg: number;
+  metalKg: number;
+  paperKg: number;
+  eWasteKg: number;
+};
+
 // ─── Recycling ─────────────────────────────────────────────────────────────
 export type RecyclingStage = 'collected' | 'segregated' | 'processing' | 'converted';
 

@@ -10,9 +10,7 @@ import type {
   PickupTaskMarkCollectedInputDto,
   PickupTaskUpdateInputDto,
   PickupStatus,
-  SegregationDispatch,
 } from '../../shared/api/contracts';
-import { collection as legacyCollection } from '../../shared/api/legacyClient';
 import { requestJson } from '../../shared/services/http';
 
 type PickupTaskListResponse = {
@@ -72,20 +70,7 @@ export function mapPickupDtoToTask(dto: PickupTaskDto): PickupTask {
   };
 }
 
-function mapLegacyTasksToResponse(tasks: PickupTask[]): PickupTaskListResponse {
-  const items = tasks.map((task) => ({
-    ...task,
-    assignmentEvents: task.assignmentEvents ?? [],
-  }));
 
-  return {
-    items,
-    page: 1,
-    pageSize: items.length,
-    totalCount: items.length,
-    totalPages: 1,
-  };
-}
 
 function normalizeHistoryPayload(payload: PickupAssignmentHistoryResponseDto | { events?: PickupAssignmentEventDto[] }): PickupAssignmentEventDto[] {
   return payload.events ?? [];
@@ -114,39 +99,20 @@ function toListResponse(payload: PickupTaskPayload): PickupTaskListResponse {
 }
 
 async function readPickupList(): Promise<PickupTaskListResponse> {
-  try {
-    const payload = await requestJson<PickupTaskPayload>('/api/collection/pickups');
-    return toListResponse(payload);
-  } catch {
-    return mapLegacyTasksToResponse(await legacyCollection.getSchedule());
-  }
+  const payload = await requestJson<PickupTaskPayload>('/api/collection/pickups');
+  return toListResponse(payload);
 }
 
 async function readPickupById(id: string): Promise<PickupTask> {
-  try {
-    return mapPickupDtoToTask(await requestJson<PickupTaskDto>(`/api/collection/pickups/${id}`));
-  } catch {
-    // The legacy mock facade only exposes the schedule collection, so fallback
-    // resolves the single pickup from the cached list instead of inventing a new API.
-    const fallback = await legacyCollection.getSchedule();
-    const match = fallback.find((task) => task.id === id);
-    if (!match) {
-      throw new Error(`Pickup ${id} not found`);
-    }
-
-    return {
-      ...match,
-      assignmentEvents: match.assignmentEvents ?? [],
-    };
-  }
+  return mapPickupDtoToTask(await requestJson<PickupTaskDto>(`/api/collection/pickups/${id}`));
 }
 
 export const collectionService = {
   async getSchedule(): Promise<PickupTaskListResponse> {
     return readPickupList();
   },
-  async getDispatches(): Promise<SegregationDispatch[]> {
-    return legacyCollection.getDispatches();
+  async getDispatches(): Promise<any[]> {
+    return requestJson<any[]>('/api/collection/dispatches');
   },
   async updateStatus(id: string, status: PickupStatus, input?: { assignedCollectorUserId?: string; note?: string; collectedWeightKg?: number }): Promise<PickupTask> {
     if (status === 'assigned') {
@@ -176,16 +142,9 @@ export const collectionService = {
     return readPickupById(id);
   },
   async getAssignmentHistory(id: string): Promise<PickupAssignmentEventDto[]> {
-    try {
-      const payload = await requestJson<PickupAssignmentHistoryResponseDto>(`/api/collection/pickups/${id}/assignment-history`);
-      return normalizeHistoryPayload(payload);
-    } catch {
-      const fallback = await readPickupById(id);
-      return fallback.assignmentEvents ?? [];
-    }
+    const payload = await requestJson<PickupAssignmentHistoryResponseDto>(`/api/collection/pickups/${id}/assignment-history`);
+    return normalizeHistoryPayload(payload);
   },
-  // Mutations are intentionally online-only. Reads can fall back to legacy mock
-  // data so the current page still renders while the backend rollout finishes.
   async createTask(input: PickupTaskCreateInputDto): Promise<PickupTask> {
     return mapPickupDtoToTask(
       await requestJson<PickupTaskDto>('/api/collection/pickups', {
