@@ -15,6 +15,7 @@ import { CrudActions } from '../../shared/ui/CrudActions';
 import { Modal } from '../../shared/ui/Modal';
 import { getCurrentRole } from '../auth/sessionStore';
 import { PickupHistoryTooltip } from './PickupHistoryTooltip';
+import { upsertById } from '../../shared/services/queryListCache';
 
 const STATUS_LABELS: Record<string, string> = {
   scheduled: 'Scheduled',
@@ -172,6 +173,12 @@ export function CollectionPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [formState, setFormState] = useState<PickupFormState>(defaultFormState);
   const [dispatchInputs, setDispatchInputs] = useState<Record<string, string>>({});
+  const [latestCreatedTask, setLatestCreatedTask] = useState<PickupTask | null>(null);
+
+  const displayedTasks = useMemo(
+    () => (latestCreatedTask ? upsertById(tasks, latestCreatedTask) : tasks ?? []),
+    [latestCreatedTask, tasks]
+  );
 
   const isSubmitting = creatingTask || updatingTask || updatingStatus;
 
@@ -238,7 +245,12 @@ export function CollectionPage() {
       return;
     }
 
-    createTask(payload, { onSuccess: closeModal });
+    createTask(payload, {
+      onSuccess: (created) => {
+        setLatestCreatedTask(created);
+        closeModal();
+      },
+    });
   }
 
   function handleEdit(task: PickupTask) {
@@ -303,7 +315,7 @@ export function CollectionPage() {
             </tr>
           </thead>
           <tbody>
-            {(tasks ?? []).map((task) => (
+            {displayedTasks.map((task) => (
               <TaskRow
                 key={task.id}
                 task={task}

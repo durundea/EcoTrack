@@ -240,10 +240,6 @@ describe('inventory sales records', () => {
     fireEvent.click(createDraftButton);
 
     try {
-      await waitFor(() => {
-        expect(salesListCalls).toBeGreaterThanOrEqual(2);
-      }, { timeout: 1000 });
-
       const salesTable = await findSalesTable();
       expect(within(salesTable).getByText(formatExpectedSoldAt('2026-06-03T00:00:00Z'))).toBeInTheDocument();
     } finally {

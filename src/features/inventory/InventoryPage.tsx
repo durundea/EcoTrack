@@ -162,7 +162,11 @@ export function InventoryPage() {
   );
   const recycledProducts = (items ?? []).filter((item) => item.category === 'recycled-product');
   const rawWasteItems = (items ?? []).filter((item) => item.category === 'raw-waste');
-  const salesRows = useMemo(() => buildSalesRows(sales ?? [], items ?? []), [sales, items]);
+  const reflectedSales = useMemo(
+    () => (latestDraft ? upsertById(sales, latestDraft) : sales ?? []),
+    [latestDraft, sales]
+  );
+  const salesRows = useMemo(() => buildSalesRows(reflectedSales, items ?? []), [reflectedSales, items]);
   const filteredSalesRows = useMemo(() => filterSalesRows(salesRows, salesSearch), [salesRows, salesSearch]);
 
   return (

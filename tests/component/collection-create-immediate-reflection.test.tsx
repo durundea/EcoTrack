@@ -139,6 +139,10 @@ describe('collection create immediate reflection', () => {
       await waitFor(() => {
         expect(pickupPostCount).toBe(1);
       });
+
+      await waitFor(() => {
+        expect(screen.getByText('Immediate Site')).toBeInTheDocument();
+      });
     } finally {
       releaseSecondGet?.();
     }
