@@ -63,6 +63,25 @@ describe('collection service', () => {
     expect(task.notes).toBe('');
   });
 
+  it('normalizes capitalized pickup statuses from the backend', () => {
+    const task = mapPickupDtoToTask({
+      id: 'pickup-3',
+      pickupCode: 'PK-003',
+      siteName: 'West Campus',
+      siteAddressText: '44 River Road',
+      scheduledAtUtc: '2026-06-21T10:00:00Z',
+      estimatedWeightKg: 18,
+      collectedWeightKg: 0,
+      status: 'Assigned',
+      assignedCollectorUserId: 'user-7',
+      assignedCollectorDisplayName: 'Ravi Kumar',
+      notes: 'Gate B',
+    });
+
+    expect(task.status).toBe('assigned');
+    expect(task.lockedAfterCollection).toBe(false);
+  });
+
   it('accepts either a raw array or a paginated envelope for pickup lists', async () => {
     vi.mocked(requestJson).mockResolvedValueOnce([
       {

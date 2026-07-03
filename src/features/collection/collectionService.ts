@@ -11,6 +11,7 @@ import type {
   PickupTaskUpdateInputDto,
   PickupStatus,
 } from '../../shared/api/contracts';
+import { collection as legacyCollection } from '../../shared/api/legacyClient';
 import { requestJson } from '../../shared/services/http';
 
 type PickupTaskListResponse = {
@@ -28,10 +29,12 @@ function normalizeText(value: string | null | undefined): string {
 }
 
 function mapStatus(status: string): PickupTask['status'] {
+  const normalizedStatus = status.trim().toLowerCase();
+
   // Unknown statuses default to scheduled until the page can explicitly surface
   // additional lifecycle states from the backend.
-  if (status === 'scheduled' || status === 'assigned' || status === 'collected') {
-    return status;
+  if (normalizedStatus === 'scheduled' || normalizedStatus === 'assigned' || normalizedStatus === 'collected') {
+    return normalizedStatus;
   }
 
   return 'scheduled';
@@ -51,14 +54,16 @@ function normalizeListPayload(payload: PickupTaskPayload): PickupTaskDto[] {
 }
 
 export function mapPickupDtoToTask(dto: PickupTaskDto): PickupTask {
+  const status = mapStatus(dto.status);
+
   return {
     id: dto.id,
     site: dto.siteName,
-    status: mapStatus(dto.status),
+    status,
     assignedCollectorId: dto.assignedCollectorUserId ?? undefined,
     scheduledDate: scheduledDateFromUtc(dto.scheduledAtUtc),
     estimatedWeightKg: dto.estimatedWeightKg ?? 0,
-    lockedAfterCollection: dto.status === 'collected',
+    lockedAfterCollection: status === 'collected',
     pickupCode: dto.pickupCode,
     siteName: dto.siteName,
     siteAddressText: dto.siteAddressText,
@@ -99,8 +104,20 @@ function toListResponse(payload: PickupTaskPayload): PickupTaskListResponse {
 }
 
 async function readPickupList(): Promise<PickupTaskListResponse> {
-  const payload = await requestJson<PickupTaskPayload>('/api/collection/pickups');
-  return toListResponse(payload);
+  try {
+    const payload = await requestJson<PickupTaskPayload>('/api/collection/pickups');
+    return toListResponse(payload);
+  } catch {
+    const items = await legacyCollection.getSchedule();
+
+    return {
+      items,
+      page: 1,
+      pageSize: items.length,
+      totalCount: items.length,
+      totalPages: 1,
+    };
+  }
 }
 
 async function readPickupById(id: string): Promise<PickupTask> {
