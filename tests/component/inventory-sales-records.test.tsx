@@ -239,10 +239,16 @@ describe('inventory sales records', () => {
     });
     fireEvent.click(createDraftButton);
 
-    const salesTable = await findSalesTable();
-    expect(within(salesTable).getByText(formatExpectedSoldAt('2026-06-03T00:00:00Z'))).toBeInTheDocument();
+    try {
+      await waitFor(() => {
+        expect(salesListCalls).toBeGreaterThanOrEqual(2);
+      }, { timeout: 1000 });
 
-    releaseSecondSalesGet?.();
+      const salesTable = await findSalesTable();
+      expect(within(salesTable).getByText(formatExpectedSoldAt('2026-06-03T00:00:00Z'))).toBeInTheDocument();
+    } finally {
+      releaseSecondSalesGet?.();
+    }
   });
 
   it('shows revenue kpi as total sales sum and keeps it after remount', async () => {

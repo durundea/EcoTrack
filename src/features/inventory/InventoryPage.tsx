@@ -67,7 +67,7 @@ export function InventoryPage() {
   };
 
   const invalidateSales = () => {
-    queryClient.invalidateQueries({ queryKey: ['inventory', 'sales'], refetchType: 'active' });
+    queryClient.invalidateQueries({ queryKey: ['inventory', 'sales'] });
   };
 
   const { mutate: updateItemPrice, isPending: updatingPrice } = useMutation({
@@ -89,7 +89,7 @@ export function InventoryPage() {
     mutationFn: (input: { inventoryItemId: string; quantitySold: number; soldAt: string }) => api.sales.createDraft(input),
     onSuccess: (created) => {
       setLatestDraft(created);
-      queryClient.setQueriesData<SaleRecord[]>({ queryKey: ['inventory', 'sales'] }, (current) => upsertById(current, created));
+      queryClient.setQueryData<SaleRecord[]>(['inventory', 'sales'], (current) => upsertById(current, created));
       invalidateSales();
     },
   });
@@ -162,11 +162,7 @@ export function InventoryPage() {
   );
   const recycledProducts = (items ?? []).filter((item) => item.category === 'recycled-product');
   const rawWasteItems = (items ?? []).filter((item) => item.category === 'raw-waste');
-  const reflectedSales = useMemo(
-    () => (latestDraft ? upsertById(sales, latestDraft) : sales ?? []),
-    [latestDraft, sales]
-  );
-  const salesRows = useMemo(() => buildSalesRows(reflectedSales, items ?? []), [reflectedSales, items]);
+  const salesRows = useMemo(() => buildSalesRows(sales ?? [], items ?? []), [sales, items]);
   const filteredSalesRows = useMemo(() => filterSalesRows(salesRows, salesSearch), [salesRows, salesSearch]);
 
   return (
