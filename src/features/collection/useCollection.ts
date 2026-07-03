@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
 import type { PickupStatus, PickupTask } from '../../shared/api/contracts';
+import { upsertById } from '../../shared/services/queryListCache';
 
 function useScheduleInvalidator() {
   const queryClient = useQueryClient();
@@ -53,8 +54,9 @@ export function useUpdatePickupStatus() {
 }
 
 export function useCreatePickupTask() {
+  const queryClient = useQueryClient();
   const invalidate = useScheduleInvalidator();
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: (input: Omit<PickupTask, 'id'>) =>
       api.collection.createTask({
         siteName: input.site,
@@ -63,8 +65,27 @@ export function useCreatePickupTask() {
         estimatedWeightKg: input.estimatedWeightKg,
         notes: input.notes ?? '',
       }),
-    onSuccess: invalidate,
   });
+
+  const reflectCreatedPickup = (created: PickupTask) => {
+    queryClient.setQueryData<PickupTask[]>(['collection', 'schedule'], (current) => upsertById(current, created));
+    invalidate();
+  };
+
+  const mutate: typeof mutation.mutate = (variables, options) => {
+    mutation.mutate(variables, {
+      ...options,
+      onSuccess: (data, mutateVariables, context) => {
+        reflectCreatedPickup(data);
+        options?.onSuccess?.(data, mutateVariables, context);
+      },
+    });
+  };
+
+  return {
+    ...mutation,
+    mutate,
+  };
 }
 
 export function useUpdatePickupTask() {
