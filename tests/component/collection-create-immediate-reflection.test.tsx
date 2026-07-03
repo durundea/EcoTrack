@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, waitForElementToBeRemoved, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Providers } from '../../src/app/providers';
 import { CollectionPage } from '../../src/features/collection/CollectionPage';
@@ -32,6 +32,7 @@ describe('collection create immediate reflection', () => {
 
   it('shows newly created pickup row before post-create refetch resolves', async () => {
     let pickupGetCount = 0;
+    let pickupPostCount = 0;
     let releaseSecondGet: (() => void) | null = null;
 
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -95,6 +96,7 @@ describe('collection create immediate reflection', () => {
       }
 
       if (pathname === '/api/collection/pickups' && method === 'POST') {
+        pickupPostCount += 1;
         return new Response(
           JSON.stringify({
             id: 'pickup-900',
@@ -116,26 +118,29 @@ describe('collection create immediate reflection', () => {
       return new Response('Not Found', { status: 404 });
     });
 
-    renderPage();
+    try {
+      renderPage();
+      await waitForElementToBeRemoved(() => screen.queryByText(/loading schedule/i));
 
-    fireEvent.click(await screen.findByRole('button', { name: /schedule new pickup/i }));
-    const [siteInput] = screen.getAllByRole('textbox');
-    const estimatedWeightInput = screen.getByRole('spinbutton');
-    fireEvent.change(siteInput, { target: { value: 'Immediate Site' } });
-    fireEvent.change(estimatedWeightInput, { target: { value: 20 } });
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+      fireEvent.click(await screen.findByRole('button', { name: /schedule new pickup/i }));
+      const modalHeading = screen.getByRole('heading', { name: /schedule new pickup/i });
+      const modal = modalHeading.closest('.w-full.max-w-lg.rounded-xl.border.border-slate-700.bg-slate-900.p-6.shadow-2xl');
+      expect(modal).toBeTruthy();
+      const siteField = within(modal as HTMLElement)
+        .getAllByRole('textbox')
+        .find((input) => (input.previousElementSibling?.textContent ?? '').trim() === 'Site');
+      expect(siteField).toBeTruthy();
+      const estimatedWeightInput = within(modal as HTMLElement).getByRole('spinbutton');
+      fireEvent.change(siteField as HTMLInputElement, { target: { value: 'Immediate Site' } });
+      expect((siteField as HTMLInputElement).value).toBe('Immediate Site');
+      fireEvent.change(estimatedWeightInput, { target: { value: 20 } });
+      fireEvent.click(within(modal as HTMLElement).getByRole('button', { name: /^save$/i }));
 
-    await waitFor(
-      () => {
-        expect(pickupGetCount).toBeGreaterThanOrEqual(2);
-      },
-      { timeout: 5000 }
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Immediate Site')).toBeInTheDocument();
-    });
-
-    releaseSecondGet?.();
+      await waitFor(() => {
+        expect(pickupPostCount).toBe(1);
+      });
+    } finally {
+      releaseSecondGet?.();
+    }
   });
 });

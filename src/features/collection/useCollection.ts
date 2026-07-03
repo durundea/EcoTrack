@@ -56,36 +56,38 @@ export function useUpdatePickupStatus() {
 export function useCreatePickupTask() {
   const queryClient = useQueryClient();
   const invalidate = useScheduleInvalidator();
-  const mutation = useMutation({
-    mutationFn: (input: Omit<PickupTask, 'id'>) =>
-      api.collection.createTask({
-        siteName: input.site,
-        siteAddressText: input.site,
-        scheduledAtUtc: new Date(`${input.scheduledDate}T00:00:00.000Z`).toISOString(),
-        estimatedWeightKg: input.estimatedWeightKg,
-        notes: input.notes ?? '',
-      }),
-  });
-
   const reflectCreatedPickup = (created: PickupTask) => {
     queryClient.setQueryData<PickupTask[]>(['collection', 'schedule'], (current) => upsertById(current, created));
     invalidate();
   };
 
-  const mutate: typeof mutation.mutate = (variables, options) => {
-    mutation.mutate(variables, {
-      ...options,
-      onSuccess: (data, mutateVariables, context) => {
-        reflectCreatedPickup(data);
-        options?.onSuccess?.(data, mutateVariables, context);
-      },
-    });
-  };
+  const isReflected = (created: PickupTask) =>
+    queryClient
+      .getQueryData<PickupTask[]>(['collection', 'schedule'])
+      ?.some((task) => task.id === created.id) ?? false;
 
-  return {
-    ...mutation,
-    mutate,
-  };
+  return useMutation({
+    mutationFn: async (input: Omit<PickupTask, 'id'>) => {
+      const created = await api.collection.createTask({
+        siteName: input.site,
+        siteAddressText: input.site,
+        scheduledAtUtc: new Date(`${input.scheduledDate}T00:00:00.000Z`).toISOString(),
+        estimatedWeightKg: input.estimatedWeightKg,
+        notes: input.notes ?? '',
+      });
+
+      if (!isReflected(created)) {
+        reflectCreatedPickup(created);
+      }
+
+      return created;
+    },
+    onSuccess: (created) => {
+      if (!isReflected(created)) {
+        reflectCreatedPickup(created);
+      }
+    },
+  });
 }
 
 export function useUpdatePickupTask() {
