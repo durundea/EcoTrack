@@ -165,9 +165,9 @@ describe('inventory sales records', () => {
     expect(screen.queryByRole('columnheader', { name: /sold date\/time \(local\)/i })).not.toBeInTheDocument();
   });
 
-  it('refreshes sales records list after creating a sale draft', async () => {
+  it('shows newly created sale row before sales refetch resolves', async () => {
     let salesListCalls = 0;
-    let draftCreated = false;
+    let releaseSecondSalesGet: (() => void) | null = null;
 
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const requestUrl =
@@ -177,7 +177,7 @@ describe('inventory sales records', () => {
             ? input.toString()
             : input.url;
       const pathname = new URL(requestUrl).pathname;
-      const method = init?.method ?? 'GET';
+      const method = (init?.method ?? 'GET').toUpperCase();
 
       if (pathname === '/api/inventory/items') {
         return new Response(
@@ -191,28 +191,18 @@ describe('inventory sales records', () => {
       if (pathname === '/api/inventory/sales' && method === 'GET') {
         salesListCalls += 1;
 
-        if (!draftCreated) {
+        if (salesListCalls === 1) {
           return new Response(JSON.stringify([]), { status: 200 });
         }
 
-        return new Response(
-          JSON.stringify([
-            {
-              id: 'SALE-900',
-              inventoryItemId: 'INV-001',
-              quantitySold: 4,
-              revenueInr: 240,
-              soldAtUtc: '2026-06-03T00:00:00Z',
-              approvalStatus: 'draft',
-              requestedByUserId: 'U-002',
-            },
-          ]),
-          { status: 200 }
-        );
+        await new Promise<void>((resolve) => {
+          releaseSecondSalesGet = resolve;
+        });
+
+        return new Response(JSON.stringify([]), { status: 200 });
       }
 
       if (pathname === '/api/inventory/sales' && method === 'POST') {
-        draftCreated = true;
         return new Response(
           JSON.stringify({
             id: 'SALE-900',
@@ -232,6 +222,9 @@ describe('inventory sales records', () => {
 
     renderInventory();
 
+    expect(await screen.findByText(/no sales records available/i)).toBeInTheDocument();
+    expect(salesListCalls).toBe(1);
+
     const itemSelect = await screen.findByRole('combobox');
     await waitFor(() => {
       expect(within(itemSelect).getByRole('option', { name: 'Compost' })).toBeInTheDocument();
@@ -246,11 +239,12 @@ describe('inventory sales records', () => {
     });
     fireEvent.click(createDraftButton);
 
-    const salesTable = await findSalesTable();
-    await waitFor(() => {
+    try {
+      const salesTable = await findSalesTable();
       expect(within(salesTable).getByText(formatExpectedSoldAt('2026-06-03T00:00:00Z'))).toBeInTheDocument();
-    });
-    expect(salesListCalls).toBeGreaterThanOrEqual(1);
+    } finally {
+      releaseSecondSalesGet?.();
+    }
   });
 
   it('shows revenue kpi as total sales sum and keeps it after remount', async () => {

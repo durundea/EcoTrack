@@ -15,17 +15,20 @@ import { CrudActions } from '../../shared/ui/CrudActions';
 import { Modal } from '../../shared/ui/Modal';
 import { getCurrentRole } from '../auth/sessionStore';
 import { PickupHistoryTooltip } from './PickupHistoryTooltip';
+import { upsertById } from '../../shared/services/queryListCache';
 
 const STATUS_LABELS: Record<string, string> = {
   scheduled: 'Scheduled',
   assigned: 'Assigned',
   collected: 'Collected',
+  cancelled: 'Cancelled',
 };
 
-const STATUS_VARIANT: Record<string, 'warning' | 'info' | 'success'> = {
+const STATUS_VARIANT: Record<string, 'warning' | 'info' | 'success' | 'neutral' | 'danger'> = {
   scheduled: 'warning',
   assigned: 'info',
   collected: 'success',
+  cancelled: 'neutral',
 };
 
 function formatTaskDateTimeLocal(task: PickupTask): string {
@@ -62,6 +65,7 @@ const defaultFormState: PickupFormState = {
   site: '',
   status: 'scheduled',
   assignedCollectorId: '',
+  assignedCollectorDisplayName: '',
   scheduledDate: new Date().toISOString().slice(0, 10),
   estimatedWeightKg: 0,
 };
@@ -82,10 +86,11 @@ function TaskRow({
       <td className="px-4 py-3 font-mono text-sm text-slate-400">{formatTaskDateTimeLocal(task)}</td>
       <td className="px-4 py-3">{task.site}</td>
       <td className="px-4 py-3">{task.pickupCode || '-'}</td>
-      <td className="px-4 py-3">{task.estimatedWeightKg} kg</td>
+      <td className="px-4 py-3">{task.estimatedWeightKg != null ? `${task.estimatedWeightKg} kg` : '-'}</td>
+      <td className="px-4 py-3">{task.collectedWeightKg != null ? `${task.collectedWeightKg} kg` : '-'}</td>
       <td className="px-4 py-3">
-        <StatusBadge variant={STATUS_VARIANT[task.status]}>
-          {STATUS_LABELS[task.status]}
+        <StatusBadge variant={STATUS_VARIANT[task.status.toLowerCase()]}>
+          {STATUS_LABELS[task.status.toLowerCase()] ?? task.status}
         </StatusBadge>
       </td>
       <td className="px-4 py-3">
@@ -145,10 +150,10 @@ function TaskRow({
             </>
           )}
           <PickupHistoryTooltip pickupId={task.id} />
-          {task.status !== 'collected' ? (
+          {task.status !== 'collected' && task.status !== 'cancelled' ? (
             <CrudActions onEdit={() => onEdit(task)} onDelete={() => onDelete(task)} />
           ) : (
-            <span className="text-xs text-slate-500">Locked after collection</span>
+            <span className="text-xs text-slate-500">{task.status === 'collected' ? 'Locked after collection' : 'Locked'}</span>
           )}
         </div>
       </td>
@@ -172,6 +177,12 @@ export function CollectionPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [formState, setFormState] = useState<PickupFormState>(defaultFormState);
   const [dispatchInputs, setDispatchInputs] = useState<Record<string, string>>({});
+  const [latestCreatedTask, setLatestCreatedTask] = useState<PickupTask | null>(null);
+
+  const displayedTasks = useMemo(
+    () => (latestCreatedTask ? upsertById(tasks, latestCreatedTask) : tasks ?? []),
+    [latestCreatedTask, tasks]
+  );
 
   const isSubmitting = creatingTask || updatingTask || updatingStatus;
 
@@ -191,6 +202,7 @@ export function CollectionPage() {
       site: task.site,
       status: task.status,
       assignedCollectorId: task.assignedCollectorId ?? '',
+      assignedCollectorDisplayName: task.assignedCollectorDisplayName ?? '',
       scheduledDate: task.scheduledDate,
       estimatedWeightKg: task.estimatedWeightKg,
     });
@@ -238,7 +250,12 @@ export function CollectionPage() {
       return;
     }
 
-    createTask(payload, { onSuccess: closeModal });
+    createTask(payload, {
+      onSuccess: (created) => {
+        setLatestCreatedTask(created);
+        closeModal();
+      },
+    });
   }
 
   function handleEdit(task: PickupTask) {
@@ -298,12 +315,13 @@ export function CollectionPage() {
               <th className="px-4 py-3 text-left">Site</th>
               <th className="px-4 py-3 text-left">Pickup Code</th>
               <th className="px-4 py-3 text-left">Est. Weight</th>
+              <th className="px-4 py-3 text-left">Collected Weight</th>
               <th className="px-4 py-3 text-left">Status</th>
               <th className="px-4 py-3 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {(tasks ?? []).map((task) => (
+            {displayedTasks.map((task) => (
               <TaskRow
                 key={task.id}
                 task={task}
@@ -391,11 +409,17 @@ export function CollectionPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs text-slate-400">Assigned Collector ID (optional)</label>
+              <label className="mb-1 block text-xs text-slate-400">Assigned Collector (optional)</label>
               <input
                 type="text"
-                value={formState.assignedCollectorId ?? ''}
-                onChange={(e) => onFormFieldChange('assignedCollectorId', e.target.value)}
+                value={formState.assignedCollectorDisplayName || formState.assignedCollectorId || ''}
+                onChange={(e) => {
+                  onFormFieldChange('assignedCollectorDisplayName', e.target.value);
+                  if (e.target.value !== formState.assignedCollectorDisplayName) {
+                    onFormFieldChange('assignedCollectorId', e.target.value);
+                  }
+                }}
+                placeholder="Collector Name or ID"
                 className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
               />
             </div>

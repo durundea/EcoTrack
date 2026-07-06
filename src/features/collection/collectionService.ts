@@ -28,13 +28,12 @@ function normalizeText(value: string | null | undefined): string {
 }
 
 function mapStatus(status: string): PickupTask['status'] {
-  // Unknown statuses default to scheduled until the page can explicitly surface
-  // additional lifecycle states from the backend.
-  if (status === 'scheduled' || status === 'assigned' || status === 'collected') {
-    return status;
+  const lower = status.toLowerCase();
+  if (lower === 'scheduled' || lower === 'assigned' || lower === 'collected') {
+    return lower;
   }
 
-  return 'scheduled';
+  return lower as PickupTask['status'];
 }
 
 function scheduledDateFromUtc(utcValue: string): string {
@@ -58,12 +57,12 @@ export function mapPickupDtoToTask(dto: PickupTaskDto): PickupTask {
     assignedCollectorId: dto.assignedCollectorUserId ?? undefined,
     scheduledDate: scheduledDateFromUtc(dto.scheduledAtUtc),
     estimatedWeightKg: dto.estimatedWeightKg ?? 0,
-    lockedAfterCollection: dto.status === 'collected',
+    lockedAfterCollection: dto.status.toLowerCase() === 'collected',
     pickupCode: dto.pickupCode,
     siteName: dto.siteName,
     siteAddressText: dto.siteAddressText,
     scheduledAtUtc: dto.scheduledAtUtc,
-    collectedWeightKg: dto.collectedWeightKg ?? 0,
+    collectedWeightKg: dto.collectedWeightKg ?? undefined,
     assignedCollectorDisplayName: normalizeText(dto.assignedCollectorDisplayName),
     notes: normalizeText(dto.notes),
     assignmentEvents: dto.assignmentEvents ?? [],

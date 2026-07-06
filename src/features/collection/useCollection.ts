@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
 import type { PickupStatus, PickupTask } from '../../shared/api/contracts';
+import { upsertById } from '../../shared/services/queryListCache';
 
 function useScheduleInvalidator() {
   const queryClient = useQueryClient();
@@ -53,17 +54,39 @@ export function useUpdatePickupStatus() {
 }
 
 export function useCreatePickupTask() {
+  const queryClient = useQueryClient();
   const invalidate = useScheduleInvalidator();
+  const reflectCreatedPickup = (created: PickupTask) => {
+    queryClient.setQueryData<PickupTask[]>(['collection', 'schedule'], (current) => upsertById(current, created));
+    invalidate();
+  };
+
+  const isReflected = (created: PickupTask) =>
+    queryClient
+      .getQueryData<PickupTask[]>(['collection', 'schedule'])
+      ?.some((task) => task.id === created.id) ?? false;
+
   return useMutation({
-    mutationFn: (input: Omit<PickupTask, 'id'>) =>
-      api.collection.createTask({
+    mutationFn: async (input: Omit<PickupTask, 'id'>) => {
+      const created = await api.collection.createTask({
         siteName: input.site,
         siteAddressText: input.site,
         scheduledAtUtc: new Date(`${input.scheduledDate}T00:00:00.000Z`).toISOString(),
         estimatedWeightKg: input.estimatedWeightKg,
         notes: input.notes ?? '',
-      }),
-    onSuccess: invalidate,
+      });
+
+      if (!isReflected(created)) {
+        reflectCreatedPickup(created);
+      }
+
+      return created;
+    },
+    onSuccess: (created) => {
+      if (!isReflected(created)) {
+        reflectCreatedPickup(created);
+      }
+    },
   });
 }
 
