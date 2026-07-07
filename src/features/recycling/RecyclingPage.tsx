@@ -15,6 +15,7 @@ type ProductDraft = {
 export function RecyclingPage() {
   const queryClient = useQueryClient();
   const [productDrafts, setProductDrafts] = useState<Record<string, ProductDraft>>({});
+  const [syncSummaryMessage, setSyncSummaryMessage] = useState<string | null>(null);
   const { data: batches, isLoading } = useQuery({
     queryKey: ['recycling', 'batches'],
     queryFn: () => api.recycling.getBatches(),
@@ -41,7 +42,12 @@ export function RecyclingPage() {
 
   const { mutate: syncInventory, isPending: syncingInventory } = useMutation({
     mutationFn: () => api.inventory.syncInventoryFromConversions(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['inventory', 'items'] }),
+    onSuccess: (summary) => {
+      setSyncSummaryMessage(
+        `Inventory sync complete. Updated ${summary.updatedItemsCount}, created ${summary.createdItemsCount}, skipped ${summary.skippedCount}.`
+      );
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'items'] });
+    },
   });
 
   function updateDraft(batchId: string, next: Partial<ProductDraft>) {
@@ -79,6 +85,11 @@ export function RecyclingPage() {
         >
           Push Converted Products to Inventory
         </button>
+        {syncSummaryMessage ? (
+          <p role="status" className="mt-2 text-sm text-emerald-300">
+            {syncSummaryMessage}
+          </p>
+        ) : null}
       </div>
 
       <div className="space-y-4">
