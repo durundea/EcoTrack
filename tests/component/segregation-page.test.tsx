@@ -135,6 +135,72 @@ describe('SegregationPage integration', () => {
     expect(await screen.findByText('Created 2 recycling batch(es).')).toBeInTheDocument();
   });
 
+  it('shows backend recordBatch error text when submit fails', async () => {
+    apiMock.segregation.recordBatch.mockRejectedValueOnce(new Error('Record API failed.'));
+
+    renderPage();
+
+    await screen.findByText(/SB-001 \| PK-001 \| pending/i);
+
+    fireEvent.change(screen.getByLabelText(/Segregation Queue Entry/i), { target: { value: 'batch-1' } });
+    fireEvent.change(screen.getByLabelText(/Plastic \(kg\)/i), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /Save Batch/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Record API failed.');
+  });
+
+  it('clears stale success text when a later submit fails', async () => {
+    apiMock.segregation.recordBatch.mockResolvedValueOnce({
+      id: 'batch-1',
+      createdRecyclingBatchIds: ['rb-1'],
+      createdRecyclingCount: 1,
+    });
+    apiMock.segregation.recordBatch.mockRejectedValueOnce(new Error('Second attempt failed.'));
+
+    renderPage();
+
+    await screen.findByText(/SB-001 \| PK-001 \| pending/i);
+
+    fireEvent.change(screen.getByLabelText(/Segregation Queue Entry/i), { target: { value: 'batch-1' } });
+    fireEvent.change(screen.getByLabelText(/Plastic \(kg\)/i), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /Save Batch/i }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Created 1 recycling batch(es).');
+
+    fireEvent.change(screen.getByLabelText(/Segregation Queue Entry/i), { target: { value: 'batch-1' } });
+    fireEvent.change(screen.getByLabelText(/Plastic \(kg\)/i), { target: { value: '12' } });
+    fireEvent.click(screen.getByRole('button', { name: /Save Batch/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Second attempt failed.');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('clears prior error text after a subsequent successful submit', async () => {
+    apiMock.segregation.recordBatch.mockRejectedValueOnce(new Error('Temporary backend issue.'));
+    apiMock.segregation.recordBatch.mockResolvedValueOnce({
+      id: 'batch-1',
+      createdRecyclingBatchIds: ['rb-1', 'rb-2', 'rb-3'],
+      createdRecyclingCount: 3,
+    });
+
+    renderPage();
+
+    await screen.findByText(/SB-001 \| PK-001 \| pending/i);
+
+    fireEvent.change(screen.getByLabelText(/Segregation Queue Entry/i), { target: { value: 'batch-1' } });
+    fireEvent.change(screen.getByLabelText(/Plastic \(kg\)/i), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /Save Batch/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Temporary backend issue.');
+
+    fireEvent.change(screen.getByLabelText(/Segregation Queue Entry/i), { target: { value: 'batch-1' } });
+    fireEvent.change(screen.getByLabelText(/Plastic \(kg\)/i), { target: { value: '14' } });
+    fireEvent.click(screen.getByRole('button', { name: /Save Batch/i }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Created 3 recycling batch(es).');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('loads detail endpoint when view action is clicked', async () => {
     renderPage();
 

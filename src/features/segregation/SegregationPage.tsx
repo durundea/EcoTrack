@@ -154,8 +154,8 @@ export function SegregationPage() {
               </div>
             ))}
           </div>
-          {saveSuccessMessage ? <p className="text-sm text-emerald-400">{saveSuccessMessage}</p> : null}
-          {formError && <p className="text-sm text-red-400">{formError}</p>}
+          {saveSuccessMessage ? <p role="status" aria-live="polite" className="text-sm text-emerald-400">{saveSuccessMessage}</p> : null}
+          {formError && <p role="alert" className="text-sm text-red-400">{formError}</p>}
           <button
             type="submit"
             disabled={isPending}
