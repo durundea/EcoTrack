@@ -32,4 +32,31 @@ describe('inventoryService', () => {
     expect(items[0].category).toBe('recycled-product');
     expect(items[0].standardPriceINR).toBe(75);
   });
+
+  it('maps recycling conversions sync summary response', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          updatedItemsCount: 3,
+          createdItemsCount: 2,
+          skippedCount: 1,
+          syncRunId: 'sync-2026-07-07-01',
+        }),
+        { status: 200 }
+      )
+    );
+
+    const summary = await inventoryService.syncFromRecyclingConversions();
+
+    expect(summary).toEqual({
+      updatedItemsCount: 3,
+      createdItemsCount: 2,
+      skippedCount: 1,
+      syncRunId: 'sync-2026-07-07-01',
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/api/recycling/conversions/sync-inventory'),
+      expect.objectContaining({ method: 'POST' })
+    );
+  });
 });
