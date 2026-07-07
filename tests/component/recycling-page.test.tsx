@@ -93,8 +93,46 @@ describe('RecyclingPage integration', () => {
       expect(apiMock.inventory.syncInventoryFromConversions).toHaveBeenCalledTimes(1);
     });
 
-    expect(
-      await screen.findByText('Inventory sync complete. Updated 2, created 1, skipped 0.')
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Inventory sync complete. Updated 2, created 1, skipped 0.'
+    );
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('shows explicit error feedback when inventory sync fails', async () => {
+    apiMock.inventory.syncInventoryFromConversions.mockRejectedValueOnce(new Error('sync failed'));
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Push Converted Products to Inventory/i }));
+
+    await waitFor(() => {
+      expect(apiMock.inventory.syncInventoryFromConversions).toHaveBeenCalledTimes(1);
+    });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Inventory sync failed. Please retry the sync.');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('clears stale success feedback on retry when second sync fails', async () => {
+    apiMock.inventory.syncInventoryFromConversions
+      .mockResolvedValueOnce({
+        updatedItemsCount: 2,
+        createdItemsCount: 1,
+        skippedCount: 0,
+        syncRunId: 'sync-1',
+      })
+      .mockRejectedValueOnce(new Error('sync failed'));
+    renderPage();
+
+    const syncButton = await screen.findByRole('button', { name: /Push Converted Products to Inventory/i });
+
+    fireEvent.click(syncButton);
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Inventory sync complete. Updated 2, created 1, skipped 0.'
+    );
+
+    fireEvent.click(syncButton);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Inventory sync failed. Please retry the sync.');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });

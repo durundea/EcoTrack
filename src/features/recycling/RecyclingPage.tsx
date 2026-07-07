@@ -12,10 +12,15 @@ type ProductDraft = {
   unit: 'kg' | 'units';
 };
 
+type SyncFeedback = {
+  kind: 'success' | 'error';
+  message: string;
+};
+
 export function RecyclingPage() {
   const queryClient = useQueryClient();
   const [productDrafts, setProductDrafts] = useState<Record<string, ProductDraft>>({});
-  const [syncSummaryMessage, setSyncSummaryMessage] = useState<string | null>(null);
+  const [syncFeedback, setSyncFeedback] = useState<SyncFeedback | null>(null);
   const { data: batches, isLoading } = useQuery({
     queryKey: ['recycling', 'batches'],
     queryFn: () => api.recycling.getBatches(),
@@ -42,11 +47,21 @@ export function RecyclingPage() {
 
   const { mutate: syncInventory, isPending: syncingInventory } = useMutation({
     mutationFn: () => api.inventory.syncInventoryFromConversions(),
+    onMutate: () => {
+      setSyncFeedback(null);
+    },
     onSuccess: (summary) => {
-      setSyncSummaryMessage(
-        `Inventory sync complete. Updated ${summary.updatedItemsCount}, created ${summary.createdItemsCount}, skipped ${summary.skippedCount}.`
-      );
+      setSyncFeedback({
+        kind: 'success',
+        message: `Inventory sync complete. Updated ${summary.updatedItemsCount}, created ${summary.createdItemsCount}, skipped ${summary.skippedCount}.`,
+      });
       queryClient.invalidateQueries({ queryKey: ['inventory', 'items'] });
+    },
+    onError: () => {
+      setSyncFeedback({
+        kind: 'error',
+        message: 'Inventory sync failed. Please retry the sync.',
+      });
     },
   });
 
@@ -85,9 +100,14 @@ export function RecyclingPage() {
         >
           Push Converted Products to Inventory
         </button>
-        {syncSummaryMessage ? (
+        {syncFeedback?.kind === 'success' ? (
           <p role="status" className="mt-2 text-sm text-emerald-300">
-            {syncSummaryMessage}
+            {syncFeedback.message}
+          </p>
+        ) : null}
+        {syncFeedback?.kind === 'error' ? (
+          <p role="alert" className="mt-2 text-sm text-rose-300">
+            {syncFeedback.message}
           </p>
         ) : null}
       </div>
