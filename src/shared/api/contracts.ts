@@ -211,6 +211,13 @@ export type RecyclingAdvanceStageInputDto = {
   stage: Exclude<RecyclingStage, 'collected' | 'segregated'>;
 };
 
+export type RecyclingCreateProductConversionInputDto = {
+  recyclingBatchId: string;
+  productName: string;
+  quantity: number;
+  unit: 'kg' | 'units';
+};
+
 export type InventorySyncSummaryDto = {
   updatedItemsCount: number;
   createdItemsCount: number;

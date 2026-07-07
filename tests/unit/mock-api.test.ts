@@ -22,7 +22,12 @@ describe('api facade composition', () => {
     expect(api.segregation.getBatchById).toBeTypeOf('function');
     expect(api.segregation.recordBatch).toBeTypeOf('function');
     expect(api.segregation.markRecycled).toBeTypeOf('function');
+    expect(api.recycling.getBatches).toBeTypeOf('function');
+    expect(api.recycling.advanceStage).toBeTypeOf('function');
+    expect(api.recycling.createProductConversion).toBeTypeOf('function');
+    expect(api.recycling.syncInventoryFromConversions).toBeTypeOf('function');
     expect(api.inventory.getItems).toBeTypeOf('function');
+    expect(api.inventory.syncInventoryFromConversions).toBe(api.recycling.syncInventoryFromConversions);
     expect(api.sales.createDraft).toBeTypeOf('function');
     expect(api.health.getHealth).toBeTypeOf('function');
   });

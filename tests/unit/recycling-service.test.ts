@@ -69,7 +69,7 @@ describe('recycling service requests', () => {
       ],
     });
 
-    await recyclingService.advanceStage('RB-1', 'processing');
+    await recyclingService.advanceStage('RB-1', { stage: 'processing' });
 
     expect(vi.mocked(requestJson)).toHaveBeenCalledWith('/api/recycling/batches/RB-1/advance-stage', {
       method: 'POST',

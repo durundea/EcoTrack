@@ -1,10 +1,11 @@
 import type {
   InventorySyncSummaryDto,
   ProductConversion,
+  RecyclingAdvanceStageInputDto,
   RecyclingBatch,
   RecyclingBatchDto,
   RecyclingBatchListResponseDto,
-  RecyclingStage,
+  RecyclingCreateProductConversionInputDto,
 } from '../../shared/api/contracts';
 import { requestJson } from '../../shared/services/http';
 
@@ -55,21 +56,16 @@ export const recyclingService = {
     return normalizeBatchList(payload).map(mapRecyclingBatch);
   },
 
-  async advanceStage(id: string, stage: Exclude<RecyclingStage, 'collected' | 'segregated'>): Promise<RecyclingBatch> {
+  async advanceStage(id: string, input: RecyclingAdvanceStageInputDto): Promise<RecyclingBatch> {
     const payload = await requestJson<RecyclingBatchDto>(`/api/recycling/batches/${id}/advance-stage`, {
       method: 'POST',
-      body: JSON.stringify({ stage }),
+      body: JSON.stringify(input),
     });
 
     return mapRecyclingBatch(payload);
   },
 
-  async createProductConversion(input: {
-    recyclingBatchId: string;
-    productName: string;
-    quantity: number;
-    unit: 'kg' | 'units';
-  }): Promise<ProductConversion> {
+  async createProductConversion(input: RecyclingCreateProductConversionInputDto): Promise<ProductConversion> {
     const payload = await requestJson<ProductConversion>(
       `/api/recycling/batches/${input.recyclingBatchId}/conversions`,
       {

@@ -114,7 +114,7 @@ export function RecyclingPage() {
             {!isTerminalStage(batch.stage) && (
               <button
                 disabled={isPending}
-                onClick={() => mutate({ id: batch.id, stage: nextStage(batch.stage) })}
+                onClick={() => mutate({ id: batch.id, stage: { stage: nextStage(batch.stage) } })}
                 className="mt-4 rounded bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
               >
                 Advance to {STAGE_LABELS[nextStage(batch.stage)]}
