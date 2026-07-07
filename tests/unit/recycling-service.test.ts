@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  mapInventorySyncSummary,
   mapRecyclingBatch,
+  mapInventorySyncSummary,
   recyclingService,
 } from '../../src/features/recycling/recyclingService';
 import { requestJson } from '../../src/shared/services/http';
@@ -52,7 +52,7 @@ describe('recycling service requests', () => {
     vi.mocked(requestJson).mockReset();
   });
 
-  it('posts stage transition payload to /api/recycling/batches/RB-1/advance-stage with POST and {stage:\'processing\'}', async () => {
+  it('posts stage transition payload', async () => {
     vi.mocked(requestJson).mockResolvedValueOnce({
       id: 'RB-1',
       segregationBatchId: 'SB-1',
@@ -77,7 +77,7 @@ describe('recycling service requests', () => {
     });
   });
 
-  it('posts inventory sync endpoint /api/recycling/conversions/sync-inventory with POST', async () => {
+  it('posts inventory sync endpoint', async () => {
     vi.mocked(requestJson).mockResolvedValueOnce({
       updatedItemsCount: 2,
       createdItemsCount: 1,
