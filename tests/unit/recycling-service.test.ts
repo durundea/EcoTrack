@@ -52,7 +52,7 @@ describe('recycling service requests', () => {
     vi.mocked(requestJson).mockReset();
   });
 
-  it('posts stage transition payload', async () => {
+  it('POST /api/recycling/batches/:id/advance-stage sends stage payload', async () => {
     vi.mocked(requestJson).mockResolvedValueOnce({
       id: 'RB-1',
       segregationBatchId: 'SB-1',
@@ -77,7 +77,7 @@ describe('recycling service requests', () => {
     });
   });
 
-  it('posts inventory sync endpoint', async () => {
+  it('POST /api/recycling/conversions/sync-inventory triggers inventory sync', async () => {
     vi.mocked(requestJson).mockResolvedValueOnce({
       updatedItemsCount: 2,
       createdItemsCount: 1,
