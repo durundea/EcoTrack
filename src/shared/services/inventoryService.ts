@@ -29,7 +29,7 @@ function toInventoryItem(dto: InventoryItemDto): InventoryItem {
   };
 }
 
-function mapInventorySyncSummary(dto: InventorySyncSummaryDto): InventorySyncSummaryDto {
+export function mapInventorySyncSummary(dto: Partial<InventorySyncSummaryDto>): InventorySyncSummaryDto {
   return {
     updatedItemsCount: normalizeNumber(dto.updatedItemsCount),
     createdItemsCount: normalizeNumber(dto.createdItemsCount),
@@ -71,15 +71,11 @@ export const inventoryService = {
     return toInventoryItem(dto);
   },
 
-  async syncFromRecyclingConversions(): Promise<InventorySyncSummaryDto> {
+  async syncInventoryFromConversions(): Promise<InventorySyncSummaryDto> {
     const dto = await requestJson<InventorySyncSummaryDto>('/api/recycling/conversions/sync-inventory', {
       method: 'POST',
     });
 
     return mapInventorySyncSummary(dto);
-  },
-
-  async syncInventoryFromConversions(): Promise<InventorySyncSummaryDto> {
-    return this.syncFromRecyclingConversions();
   },
 };

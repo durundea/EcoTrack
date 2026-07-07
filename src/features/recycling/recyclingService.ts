@@ -1,5 +1,4 @@
 import type {
-  InventorySyncSummaryDto,
   ProductConversion,
   RecyclingAdvanceStageInputDto,
   RecyclingBatch,
@@ -8,6 +7,9 @@ import type {
   RecyclingCreateProductConversionInputDto,
 } from '../../shared/api/contracts';
 import { requestJson } from '../../shared/services/http';
+import { inventoryService, mapInventorySyncSummary } from '../../shared/services/inventoryService';
+
+export { mapInventorySyncSummary } from '../../shared/services/inventoryService';
 
 function normalizeText(value: string | null | undefined): string {
   return value ?? '';
@@ -35,15 +37,6 @@ export function mapRecyclingBatch(dto: RecyclingBatchDto): RecyclingBatch {
       stage: entry.stage,
       at: normalizeText(entry.atUtc),
     })),
-  };
-}
-
-export function mapInventorySyncSummary(dto: InventorySyncSummaryDto): InventorySyncSummaryDto {
-  return {
-    updatedItemsCount: normalizeNumber(dto.updatedItemsCount),
-    createdItemsCount: normalizeNumber(dto.createdItemsCount),
-    skippedCount: normalizeNumber(dto.skippedCount),
-    syncRunId: normalizeText(dto.syncRunId),
   };
 }
 
@@ -81,11 +74,5 @@ export const recyclingService = {
     return payload;
   },
 
-  async syncInventoryFromConversions(): Promise<InventorySyncSummaryDto> {
-    const payload = await requestJson<InventorySyncSummaryDto>('/api/recycling/conversions/sync-inventory', {
-      method: 'POST',
-    });
-
-    return mapInventorySyncSummary(payload);
-  },
+  syncInventoryFromConversions: inventoryService.syncInventoryFromConversions,
 };

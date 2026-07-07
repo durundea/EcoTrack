@@ -33,7 +33,7 @@ describe('inventoryService', () => {
     expect(items[0].standardPriceINR).toBe(75);
   });
 
-  it('maps recycling conversions sync summary response', async () => {
+  it('maps recycling conversions sync summary response through the public syncInventoryFromConversions method', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -46,7 +46,7 @@ describe('inventoryService', () => {
       )
     );
 
-    const summary = await inventoryService.syncFromRecyclingConversions();
+    const summary = await inventoryService.syncInventoryFromConversions();
 
     expect(summary).toEqual({
       updatedItemsCount: 3,
@@ -58,5 +58,28 @@ describe('inventoryService', () => {
       expect.stringContaining('/api/recycling/conversions/sync-inventory'),
       expect.objectContaining({ method: 'POST' })
     );
+  });
+
+  it('normalizes missing sync summary fields to safe defaults', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          updatedItemsCount: null,
+          createdItemsCount: undefined,
+          skippedCount: null,
+          syncRunId: null,
+        }),
+        { status: 200 }
+      )
+    );
+
+    const summary = await inventoryService.syncInventoryFromConversions();
+
+    expect(summary).toEqual({
+      updatedItemsCount: 0,
+      createdItemsCount: 0,
+      skippedCount: 0,
+      syncRunId: '',
+    });
   });
 });
