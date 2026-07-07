@@ -2,7 +2,13 @@
 export type WasteCategory = 'plastic' | 'organic' | 'metal' | 'paper' | 'ewaste';
 
 // ─── Collection ────────────────────────────────────────────────────────────
-export type PickupStatus = 'scheduled' | 'assigned' | 'collected';
+export type PickupStatus =
+  | 'scheduled'
+  | 'assigned'
+  | 'collected'
+  | 'cancelled'
+  | 'sent_to_aggregation'
+  | 'sent_to_aggregation_round';
 
 export type PickupTask = {
   id: string;

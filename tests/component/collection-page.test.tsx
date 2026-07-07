@@ -2,8 +2,17 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { CollectionPage } from '../../src/features/collection/CollectionPage';
 
-vi.mock('../../src/features/collection/useCollection', () => ({
-  useCollectionSchedule: () => ({
+const {
+  useCollectionScheduleMock,
+  useSegregationDispatchesMock,
+  useCreatePickupTaskMock,
+  useUpdatePickupTaskMock,
+  useDeletePickupTaskMock,
+  useDispatchToSegregationMock,
+  useUpdatePickupStatusMock,
+  usePickupAssignmentHistoryMock,
+} = vi.hoisted(() => ({
+  useCollectionScheduleMock: vi.fn(() => ({
     data: [
       {
         id: 'pickup-1',
@@ -16,14 +25,14 @@ vi.mock('../../src/features/collection/useCollection', () => ({
     ],
     isLoading: false,
     isError: false,
-  }),
-  useSegregationDispatches: () => ({ data: [] }),
-  useCreatePickupTask: () => ({ mutate: vi.fn(), isPending: false }),
-  useUpdatePickupTask: () => ({ mutate: vi.fn(), isPending: false }),
-  useDeletePickupTask: () => ({ mutate: vi.fn() }),
-  useDispatchToSegregation: () => ({ mutate: vi.fn() }),
-  useUpdatePickupStatus: () => ({ mutate: vi.fn(), isPending: false }),
-  usePickupAssignmentHistory: () => ({
+  })),
+  useSegregationDispatchesMock: vi.fn(() => ({ data: [] })),
+  useCreatePickupTaskMock: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useUpdatePickupTaskMock: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useDeletePickupTaskMock: vi.fn(() => ({ mutate: vi.fn() })),
+  useDispatchToSegregationMock: vi.fn(() => ({ mutate: vi.fn() })),
+  useUpdatePickupStatusMock: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  usePickupAssignmentHistoryMock: vi.fn(() => ({
     data: [
       {
         id: 'event-1',
@@ -34,7 +43,18 @@ vi.mock('../../src/features/collection/useCollection', () => ({
       },
     ],
     isLoading: false,
-  }),
+  })),
+}));
+
+vi.mock('../../src/features/collection/useCollection', () => ({
+  useCollectionSchedule: useCollectionScheduleMock,
+  useSegregationDispatches: useSegregationDispatchesMock,
+  useCreatePickupTask: useCreatePickupTaskMock,
+  useUpdatePickupTask: useUpdatePickupTaskMock,
+  useDeletePickupTask: useDeletePickupTaskMock,
+  useDispatchToSegregation: useDispatchToSegregationMock,
+  useUpdatePickupStatus: useUpdatePickupStatusMock,
+  usePickupAssignmentHistory: usePickupAssignmentHistoryMock,
 }));
 
 vi.mock('../../src/features/auth/sessionStore', async () => {
@@ -51,5 +71,26 @@ describe('CollectionPage', () => {
 
     expect(screen.getByText('North Campus')).toBeInTheDocument();
     expect(screen.getByLabelText('View assignment history for pickup-1')).toBeInTheDocument();
+  });
+
+  it('renders sent-to-aggregation status as Sent to Aggregation Round', () => {
+    vi.mocked(useCollectionScheduleMock).mockReturnValue({
+      data: [
+        {
+          id: 'pickup-2',
+          site: 'South Campus',
+          status: 'sent_to_aggregation',
+          assignedCollectorId: 'collector-2',
+          scheduledDate: '2026-06-21',
+          estimatedWeightKg: 30,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+
+    render(<CollectionPage />);
+
+    expect(screen.getByText('Sent to Aggregation Round')).toBeInTheDocument();
   });
 });

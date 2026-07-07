@@ -21,6 +21,10 @@ const STATUS_LABELS: Record<string, string> = {
   scheduled: 'Scheduled',
   assigned: 'Assigned',
   collected: 'Collected',
+  sent_to_aggregation: 'Sent to Aggregation Round',
+  sent_to_aggregation_round: 'Sent to Aggregation Round',
+  senttoaggregation: 'Sent to Aggregation Round',
+  senttoaggregationround: 'Sent to Aggregation Round',
   cancelled: 'Cancelled',
 };
 
@@ -28,6 +32,10 @@ const STATUS_VARIANT: Record<string, 'warning' | 'info' | 'success' | 'neutral' 
   scheduled: 'warning',
   assigned: 'info',
   collected: 'success',
+  sent_to_aggregation: 'info',
+  sent_to_aggregation_round: 'info',
+  senttoaggregation: 'info',
+  senttoaggregationround: 'info',
   cancelled: 'neutral',
 };
 
@@ -80,6 +88,7 @@ function TaskRow({
   onDelete,
 }: TaskRowProps) {
   const { mutate, isPending } = useUpdatePickupStatus();
+  const isLocked = task.status === 'collected' || task.status.toLowerCase() === 'cancelled';
 
   return (
     <tr className="border-b border-slate-800 hover:bg-slate-800/50">
@@ -89,7 +98,7 @@ function TaskRow({
       <td className="px-4 py-3">{task.estimatedWeightKg != null ? `${task.estimatedWeightKg} kg` : '-'}</td>
       <td className="px-4 py-3">{task.collectedWeightKg != null ? `${task.collectedWeightKg} kg` : '-'}</td>
       <td className="px-4 py-3">
-        <StatusBadge variant={STATUS_VARIANT[task.status.toLowerCase()]}>
+        <StatusBadge variant={STATUS_VARIANT[task.status.toLowerCase()] ?? 'neutral'}>
           {STATUS_LABELS[task.status.toLowerCase()] ?? task.status}
         </StatusBadge>
       </td>
@@ -150,7 +159,7 @@ function TaskRow({
             </>
           )}
           <PickupHistoryTooltip pickupId={task.id} />
-          {task.status !== 'collected' && task.status !== 'cancelled' ? (
+          {!isLocked ? (
             <CrudActions onEdit={() => onEdit(task)} onDelete={() => onDelete(task)} />
           ) : (
             <span className="text-xs text-slate-500">{task.status === 'collected' ? 'Locked after collection' : 'Locked'}</span>
@@ -406,6 +415,7 @@ export function CollectionPage() {
                 <option value="scheduled">Scheduled</option>
                 <option value="assigned">Assigned</option>
                 <option value="collected">Collected</option>
+                <option value="sent_to_aggregation_round">Sent to Aggregation Round</option>
               </select>
             </div>
             <div>
