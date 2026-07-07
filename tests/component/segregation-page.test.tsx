@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SegregationPage } from '../../src/features/segregation/SegregationPage';
 
-const apiMock = {
+const apiMock = vi.hoisted(() => ({
   segregation: {
     getPendingBatches: vi.fn(),
     getBatches: vi.fn(),
@@ -12,7 +11,7 @@ const apiMock = {
     getBatchById: vi.fn(),
     markRecycled: vi.fn(),
   },
-};
+}));
 
 vi.mock('../../src/shared/api/client', () => ({
   api: apiMock,
@@ -61,7 +60,11 @@ describe('SegregationPage integration', () => {
       },
     ]);
 
-    apiMock.segregation.recordBatch.mockResolvedValue({ id: 'batch-1' });
+    apiMock.segregation.recordBatch.mockResolvedValue({
+      id: 'batch-1',
+      createdRecyclingBatchIds: [],
+      createdRecyclingCount: 0,
+    });
     apiMock.segregation.markRecycled.mockResolvedValue({ id: 'batch-1' });
 
     apiMock.segregation.getBatchById.mockResolvedValue({
@@ -95,15 +98,13 @@ describe('SegregationPage integration', () => {
   });
 
   it('records selected batch using record endpoint', async () => {
-    const user = userEvent.setup();
     renderPage();
 
     await screen.findByText(/SB-001 \| PK-001 \| pending/i);
 
-    await user.selectOptions(screen.getByLabelText(/Segregation Queue Entry/i), 'batch-1');
-    await user.clear(screen.getByLabelText(/Plastic \(kg\)/i));
-    await user.type(screen.getByLabelText(/Plastic \(kg\)/i), '10');
-    await user.click(screen.getByRole('button', { name: /Save Batch/i }));
+    fireEvent.change(screen.getByLabelText(/Segregation Queue Entry/i), { target: { value: 'batch-1' } });
+    fireEvent.change(screen.getByLabelText(/Plastic \(kg\)/i), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /Save Batch/i }));
 
     await waitFor(() => {
       expect(apiMock.segregation.recordBatch).toHaveBeenCalledWith('batch-1', {
@@ -116,11 +117,28 @@ describe('SegregationPage integration', () => {
     });
   });
 
-  it('loads detail endpoint when view action is clicked', async () => {
-    const user = userEvent.setup();
+  it('shows created recycling batch count after successful save', async () => {
+    apiMock.segregation.recordBatch.mockResolvedValueOnce({
+      id: 'batch-1',
+      createdRecyclingBatchIds: ['rb-1', 'rb-2'],
+      createdRecyclingCount: 2,
+    });
+
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: /View/i }));
+    await screen.findByText(/SB-001 \| PK-001 \| pending/i);
+
+    fireEvent.change(screen.getByLabelText(/Segregation Queue Entry/i), { target: { value: 'batch-1' } });
+    fireEvent.change(screen.getByLabelText(/Plastic \(kg\)/i), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /Save Batch/i }));
+
+    expect(await screen.findByText('Created 2 recycling batch(es).')).toBeInTheDocument();
+  });
+
+  it('loads detail endpoint when view action is clicked', async () => {
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: /View/i }));
 
     await waitFor(() => {
       expect(apiMock.segregation.getBatchById).toHaveBeenCalledWith('batch-1');
@@ -130,10 +148,9 @@ describe('SegregationPage integration', () => {
   });
 
   it('calls mark-recycled from action button', async () => {
-    const user = userEvent.setup();
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: /Send to Recycling/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /Send to Recycling/i }));
 
     await waitFor(() => {
       expect(apiMock.segregation.markRecycled).toHaveBeenCalledWith('batch-1');

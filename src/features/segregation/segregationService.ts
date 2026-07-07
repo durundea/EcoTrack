@@ -3,6 +3,7 @@ import type {
   SegregationBatchListItemDto,
   SegregationBatchListResponseDto,
   SegregationRecordInputDto,
+  SegregationRecordResultDto,
 } from '../../shared/api/contracts';
 import { requestJson } from '../../shared/services/http';
 
@@ -37,6 +38,11 @@ export type SegregationBatchDetail = {
   recycledAtUtc: string;
   createdAtUtc: string;
   updatedAtUtc: string;
+};
+
+export type SegregationRecordResult = SegregationBatchDetail & {
+  createdRecyclingBatchIds: string[];
+  createdRecyclingCount: number;
 };
 
 function normalizeText(value: string | null | undefined): string {
@@ -90,6 +96,14 @@ export function mapSegregationDetail(dto: SegregationBatchDetailDto): Segregatio
   };
 }
 
+function mapSegregationRecordResult(dto: SegregationRecordResultDto): SegregationRecordResult {
+  return {
+    ...mapSegregationDetail(dto),
+    createdRecyclingBatchIds: dto.createdRecyclingBatchIds ?? [],
+    createdRecyclingCount: normalizeNumber(dto.createdRecyclingCount),
+  };
+}
+
 export const segregationService = {
   async getBatches(page = 1, pageSize = 20): Promise<SegregationBatchSummary[]> {
     const payload = await requestJson<SegregationBatchListItemDto[] | SegregationBatchListResponseDto>(
@@ -112,13 +126,13 @@ export const segregationService = {
     return mapSegregationDetail(payload);
   },
 
-  async recordBatch(id: string, input: SegregationRecordInputDto): Promise<SegregationBatchDetail> {
-    const payload = await requestJson<SegregationBatchDetailDto>(`/api/segregation/batches/${id}/record`, {
+  async recordBatch(id: string, input: SegregationRecordInputDto): Promise<SegregationRecordResult> {
+    const payload = await requestJson<SegregationRecordResultDto>(`/api/segregation/batches/${id}/record`, {
       method: 'POST',
       body: JSON.stringify(input),
     });
 
-    return mapSegregationDetail(payload);
+    return mapSegregationRecordResult(payload);
   },
 
   async markRecycled(id: string): Promise<SegregationBatchDetail> {
