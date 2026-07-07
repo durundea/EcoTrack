@@ -1,6 +1,7 @@
 import { authService, healthService, inventoryService, salesService } from '../services';
-import { dashboard, inventoryLegacy, recycling } from './legacyClient';
+import { dashboard } from './legacyClient';
 import { collectionService } from '../../features/collection/collectionService';
+import { recyclingService } from '../../features/recycling/recyclingService';
 import { segregationService } from '../../features/segregation/segregationService';
 
 export const api = {
@@ -8,13 +9,13 @@ export const api = {
   health: healthService,
   collection: collectionService,
   segregation: segregationService,
-  recycling,
+  recycling: recyclingService,
   dashboard,
   inventory: {
     getItems: inventoryService.getItems,
     createItem: inventoryService.createItem,
     updateItemPrice: inventoryService.updatePrice,
-    syncInventoryFromConversions: inventoryLegacy.syncInventoryFromConversions,
+    syncInventoryFromConversions: recyclingService.syncInventoryFromConversions,
   },
   sales: salesService,
 };
