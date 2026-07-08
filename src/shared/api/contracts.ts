@@ -171,8 +171,59 @@ export type SegregationRecordInputDto = {
   eWasteKg: number;
 };
 
+export type SegregationRecordResultDto = SegregationBatchDetailDto & {
+  createdRecyclingBatchIds: string[];
+  createdRecyclingCount: number;
+};
+
 // ─── Recycling ─────────────────────────────────────────────────────────────
 export type RecyclingStage = 'collected' | 'segregated' | 'processing' | 'converted';
+
+export type RecyclingStageDto = 'collected' | 'segregated' | 'processing' | 'converted';
+
+export type RecyclingStageHistoryDto = {
+  stage: RecyclingStageDto;
+  atUtc: string;
+};
+
+export type RecyclingBatchDto = {
+  id: string;
+  segregationBatchId: string;
+  pickupTaskId: string;
+  sourceCategory: WasteCategory;
+  sourceWeightKg: number;
+  stage: RecyclingStageDto;
+  outputProduct: string;
+  outputQuantity: number;
+  inventoryUpdated: boolean;
+  stageHistory: RecyclingStageHistoryDto[];
+};
+
+export type RecyclingBatchListResponseDto = {
+  items: RecyclingBatchDto[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+};
+
+export type RecyclingAdvanceStageInputDto = {
+  stage: Exclude<RecyclingStage, 'collected' | 'segregated'>;
+};
+
+export type RecyclingCreateProductConversionInputDto = {
+  recyclingBatchId: string;
+  productName: string;
+  quantity: number;
+  unit: 'kg' | 'units';
+};
+
+export type InventorySyncSummaryDto = {
+  updatedItemsCount: number;
+  createdItemsCount: number;
+  skippedCount: number;
+  syncRunId: string;
+};
 
 export type RecyclingBatch = {
   id: string;

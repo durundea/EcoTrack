@@ -54,6 +54,7 @@ export function SegregationPage() {
   const [selectedBatchId, setSelectedBatchId] = useState('');
   const [selectedDetailId, setSelectedDetailId] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
+  const [saveSuccessMessage, setSaveSuccessMessage] = useState('');
 
   const {
     data: selectedDetail,
@@ -73,7 +74,7 @@ export function SegregationPage() {
       paperKg: weights.paper,
       eWasteKg: weights.ewaste,
     }),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['segregation', 'batches'] });
       queryClient.invalidateQueries({ queryKey: ['segregation', 'pending-batches'] });
       if (selectedDetailId) {
@@ -82,9 +83,11 @@ export function SegregationPage() {
       setWeights(emptyWeights());
       setSelectedBatchId('');
       setFormError('');
+      setSaveSuccessMessage(`Created ${result.createdRecyclingCount} recycling batch(es).`);
     },
     onError: (error) => {
       const message = error instanceof Error ? error.message : 'Failed to record segregation batch.';
+      setSaveSuccessMessage('');
       setFormError(message);
     },
   });
@@ -100,6 +103,7 @@ export function SegregationPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSaveSuccessMessage('');
     const result = validateSegregationEntry(weights);
     if (!result.valid) { setFormError(result.message); return; }
     if (!selectedBatchId.trim()) { setFormError('Batch selection is required.'); return; }
@@ -150,7 +154,8 @@ export function SegregationPage() {
               </div>
             ))}
           </div>
-          {formError && <p className="text-sm text-red-400">{formError}</p>}
+          {saveSuccessMessage ? <p role="status" aria-live="polite" className="text-sm text-emerald-400">{saveSuccessMessage}</p> : null}
+          {formError && <p role="alert" className="text-sm text-red-400">{formError}</p>}
           <button
             type="submit"
             disabled={isPending}

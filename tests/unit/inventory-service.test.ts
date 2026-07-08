@@ -32,4 +32,54 @@ describe('inventoryService', () => {
     expect(items[0].category).toBe('recycled-product');
     expect(items[0].standardPriceINR).toBe(75);
   });
+
+  it('maps recycling conversions sync summary response through the public syncInventoryFromConversions method', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          updatedItemsCount: 3,
+          createdItemsCount: 2,
+          skippedCount: 1,
+          syncRunId: 'sync-2026-07-07-01',
+        }),
+        { status: 200 }
+      )
+    );
+
+    const summary = await inventoryService.syncInventoryFromConversions();
+
+    expect(summary).toEqual({
+      updatedItemsCount: 3,
+      createdItemsCount: 2,
+      skippedCount: 1,
+      syncRunId: 'sync-2026-07-07-01',
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/api/recycling/conversions/sync-inventory'),
+      expect.objectContaining({ method: 'POST' })
+    );
+  });
+
+  it('normalizes missing sync summary fields to safe defaults', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          updatedItemsCount: null,
+          createdItemsCount: undefined,
+          skippedCount: null,
+          syncRunId: null,
+        }),
+        { status: 200 }
+      )
+    );
+
+    const summary = await inventoryService.syncInventoryFromConversions();
+
+    expect(summary).toEqual({
+      updatedItemsCount: 0,
+      createdItemsCount: 0,
+      skippedCount: 0,
+      syncRunId: '',
+    });
+  });
 });

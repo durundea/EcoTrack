@@ -1,4 +1,4 @@
-import type { InventoryItem } from '../api/contracts';
+import type { InventoryItem, InventorySyncSummaryDto } from '../api/contracts';
 import { requestJson } from './http';
 
 type InventoryItemDto = {
@@ -10,6 +10,14 @@ type InventoryItemDto = {
   standardPriceInr: number;
 };
 
+function normalizeText(value: string | null | undefined): string {
+  return value ?? '';
+}
+
+function normalizeNumber(value: number | null | undefined): number {
+  return value ?? 0;
+}
+
 function toInventoryItem(dto: InventoryItemDto): InventoryItem {
   return {
     id: dto.id,
@@ -18,6 +26,15 @@ function toInventoryItem(dto: InventoryItemDto): InventoryItem {
     quantityKg: dto.quantityKg,
     unit: dto.unit,
     standardPriceINR: dto.standardPriceInr,
+  };
+}
+
+export function mapInventorySyncSummary(dto: Partial<InventorySyncSummaryDto>): InventorySyncSummaryDto {
+  return {
+    updatedItemsCount: normalizeNumber(dto.updatedItemsCount),
+    createdItemsCount: normalizeNumber(dto.createdItemsCount),
+    skippedCount: normalizeNumber(dto.skippedCount),
+    syncRunId: normalizeText(dto.syncRunId),
   };
 }
 
@@ -52,5 +69,13 @@ export const inventoryService = {
     });
 
     return toInventoryItem(dto);
+  },
+
+  async syncInventoryFromConversions(): Promise<InventorySyncSummaryDto> {
+    const dto = await requestJson<InventorySyncSummaryDto>('/api/recycling/conversions/sync-inventory', {
+      method: 'POST',
+    });
+
+    return mapInventorySyncSummary(dto);
   },
 };

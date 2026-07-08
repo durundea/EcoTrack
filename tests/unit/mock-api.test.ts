@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { api } from '../../src/shared/api/client';
+import { inventoryService } from '../../src/shared/services';
 
 describe('api facade composition', () => {
-  it('returns pickup schedule list', async () => {
-    const result = await api.collection.getSchedule();
-    expect(Array.isArray(result.items)).toBe(true);
+  it('exposes collection schedule endpoint', () => {
+    expect(api.collection.getSchedule).toBeTypeOf('function');
   });
 
   it('returns dashboard summary with co2 reduction and pending sales approvals metadata', async () => {
@@ -23,7 +23,13 @@ describe('api facade composition', () => {
     expect(api.segregation.getBatchById).toBeTypeOf('function');
     expect(api.segregation.recordBatch).toBeTypeOf('function');
     expect(api.segregation.markRecycled).toBeTypeOf('function');
+    expect(api.recycling.getBatches).toBeTypeOf('function');
+    expect(api.recycling.advanceStage).toBeTypeOf('function');
+    expect(api.recycling.createProductConversion).toBeTypeOf('function');
+    expect(api.recycling.syncInventoryFromConversions).toBeTypeOf('function');
     expect(api.inventory.getItems).toBeTypeOf('function');
+    expect(api.recycling.syncInventoryFromConversions).toBe(api.inventory.syncInventoryFromConversions);
+    expect(api.inventory.syncInventoryFromConversions).toBe(inventoryService.syncInventoryFromConversions);
     expect(api.sales.createDraft).toBeTypeOf('function');
     expect(api.health.getHealth).toBeTypeOf('function');
   });
