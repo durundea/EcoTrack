@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   mapRecyclingBatch,
-  mapInventorySyncSummary,
   recyclingService,
 } from '../../src/features/recycling/recyclingService';
+import { mapInventorySyncSummary } from '../../src/shared/services/inventoryService';
 import { requestJson } from '../../src/shared/services/http';
 
 vi.mock('../../src/shared/services/http', () => ({

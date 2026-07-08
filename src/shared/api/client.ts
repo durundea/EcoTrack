@@ -15,7 +15,7 @@ export const api = {
     getItems: inventoryService.getItems,
     createItem: inventoryService.createItem,
     updateItemPrice: inventoryService.updatePrice,
-    syncInventoryFromConversions: recyclingService.syncInventoryFromConversions,
+    syncInventoryFromConversions: inventoryService.syncInventoryFromConversions,
   },
   sales: salesService,
 };

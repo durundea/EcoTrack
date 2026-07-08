@@ -7,9 +7,7 @@ import type {
   RecyclingCreateProductConversionInputDto,
 } from '../../shared/api/contracts';
 import { requestJson } from '../../shared/services/http';
-import { inventoryService, mapInventorySyncSummary } from '../../shared/services/inventoryService';
-
-export { mapInventorySyncSummary } from '../../shared/services/inventoryService';
+import { inventoryService } from '../../shared/services/inventoryService';
 
 function normalizeText(value: string | null | undefined): string {
   return value ?? '';
