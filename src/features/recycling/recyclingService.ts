@@ -72,5 +72,6 @@ export const recyclingService = {
     return payload;
   },
 
+  // Compatibility alias; canonical implementation is owned by inventoryService.
   syncInventoryFromConversions: inventoryService.syncInventoryFromConversions,
 };

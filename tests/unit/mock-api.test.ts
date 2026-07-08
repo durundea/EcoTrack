@@ -28,6 +28,7 @@ describe('api facade composition', () => {
     expect(api.recycling.createProductConversion).toBeTypeOf('function');
     expect(api.recycling.syncInventoryFromConversions).toBeTypeOf('function');
     expect(api.inventory.getItems).toBeTypeOf('function');
+    expect(api.recycling.syncInventoryFromConversions).toBe(api.inventory.syncInventoryFromConversions);
     expect(api.inventory.syncInventoryFromConversions).toBe(inventoryService.syncInventoryFromConversions);
     expect(api.sales.createDraft).toBeTypeOf('function');
     expect(api.health.getHealth).toBeTypeOf('function');
