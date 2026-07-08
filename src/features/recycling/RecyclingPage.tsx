@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api } from '../../shared/api/client';
-import { nextStage, isTerminalStage, STAGE_LABELS } from './recyclingRules';
+import { isTerminalStage, STAGE_LABELS } from './recyclingRules';
 import { WASTE_LABELS } from '../../shared/domain/waste';
 import { StatusBadge } from '../../shared/ui/StatusBadge';
 import { PageHeader } from '../../shared/ui/PageHeader';
