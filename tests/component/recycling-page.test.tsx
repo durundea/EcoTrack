@@ -84,6 +84,27 @@ describe('RecyclingPage integration', () => {
     });
   });
 
+  it('does not render advance action for collected stage batches', async () => {
+    apiMock.recycling.getBatches.mockResolvedValueOnce([
+      {
+        id: 'rb-2',
+        segregationBatchId: 'sb-2',
+        stage: 'collected',
+        inputCategory: 'organic',
+        outputProduct: 'Compost',
+        inputWeightKg: 20,
+        outputQuantity: 10,
+        inventoryUpdated: false,
+        stageHistory: [{ stage: 'collected', at: '2026-07-07T10:00:00Z' }],
+      },
+    ]);
+
+    renderPage();
+
+    expect(await screen.findByText(/Organic/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Advance to Segregated/i })).not.toBeInTheDocument();
+  });
+
   it('calls manual inventory sync endpoint and shows summary', async () => {
     renderPage();
 

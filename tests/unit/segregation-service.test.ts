@@ -106,15 +106,20 @@ describe('segregation service requests', () => {
       recycledAtUtc: null,
       createdAtUtc: '2026-06-30T09:00:00Z',
       updatedAtUtc: '2026-06-30T09:10:00Z',
+      createdRecyclingBatchIds: ['rb-1', 'rb-2'],
+      createdRecyclingCount: 2,
     });
 
-    await segregationService.recordBatch('batch-1', {
+    const result = await segregationService.recordBatch('batch-1', {
       plasticKg: 10,
       organicKg: 20,
       metalKg: 5,
       paperKg: 3,
       eWasteKg: 1,
     });
+
+    expect(result.createdRecyclingBatchIds).toEqual(['rb-1', 'rb-2']);
+    expect(result.createdRecyclingCount).toBe(2);
 
     expect(vi.mocked(requestJson)).toHaveBeenCalledWith('/api/segregation/batches/batch-1/record', {
       method: 'POST',
