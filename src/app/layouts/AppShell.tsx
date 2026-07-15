@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { ConnectivityBadge } from '../../shared/ui/ConnectivityBadge';
 import { Loader } from '../../shared/ui/Loader';
 import { ErrorBoundary } from '../../shared/errors/ErrorBoundary';
+import { useTheme } from '../../shared/ui/theme/useTheme';
 import { clearSession, getSession } from '../../features/auth/sessionStore';
 
 type Props = { children: ReactNode };
@@ -18,6 +19,7 @@ const navItems = [
 export function AppShell({ children }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const user = useMemo(() => getSession()?.user ?? null, []);
+  const { userOverride, setThemePreference } = useTheme();
 
   function handleLogout() {
     clearSession();
@@ -32,32 +34,46 @@ export function AppShell({ children }: Props) {
             <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand-500 shadow-[0_0_14px_rgba(34,197,94,0.7)]" />
             <span className="text-lg font-bold tracking-tight text-brand-500">EcoTrack</span>
           </div>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs uppercase tracking-[0.08em] text-slate-300"
+          <div className="flex items-center gap-2">
+            <label className="sr-only" htmlFor="theme-preference">Theme preference</label>
+            <select
+              id="theme-preference"
+              aria-label="Theme"
+              value={userOverride}
+              onChange={(event) => setThemePreference(event.target.value as 'light' | 'dark' | 'system')}
+              className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs uppercase tracking-[0.08em] text-slate-200"
             >
-              <span>{user?.name ?? 'User'}</span>
-              <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-400">{user?.role ?? 'guest'}</span>
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 mt-2 w-44 rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-xl">
-                {/* <a
-                  href="/login"
-                  className="block rounded px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"
-                >
-                  Go to Login
-                </a> */}
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="block w-full rounded px-3 py-2 text-left text-sm text-rose-300 hover:bg-slate-800"
-                >
-                  Logout
-                </button>
-              </div>
-            )}
+              <option value="system">System</option>
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs uppercase tracking-[0.08em] text-slate-300"
+              >
+                <span>{user?.name ?? 'User'}</span>
+                <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-400">{user?.role ?? 'guest'}</span>
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-44 rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-xl">
+                  {/* <a
+                    href="/login"
+                    className="block rounded px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"
+                  >
+                    Go to Login
+                  </a> */}
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="block w-full rounded px-3 py-2 text-left text-sm text-rose-300 hover:bg-slate-800"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>

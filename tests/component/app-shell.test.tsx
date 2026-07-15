@@ -3,14 +3,17 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { AppShell } from '../../src/app/layouts/AppShell';
 import { LoaderProvider } from '../../src/shared/services/LoaderContext';
+import { ThemeProvider } from '../../src/shared/ui/theme/ThemeProvider';
 
 describe('AppShell', () => {
   it('renders primary navigation landmarks', () => {
     render(
       <MemoryRouter>
-        <LoaderProvider>
-          <AppShell><div>Body</div></AppShell>
-        </LoaderProvider>
+        <ThemeProvider>
+          <LoaderProvider>
+            <AppShell><div>Body</div></AppShell>
+          </LoaderProvider>
+        </ThemeProvider>
       </MemoryRouter>
     );
     expect(screen.getByRole('navigation', { name: /primary/i })).toBeInTheDocument();
@@ -20,13 +23,32 @@ describe('AppShell', () => {
   it('renders all nav items', () => {
     render(
       <MemoryRouter>
-        <LoaderProvider>
-          <AppShell><div>Body</div></AppShell>
-        </LoaderProvider>
+        <ThemeProvider>
+          <LoaderProvider>
+            <AppShell><div>Body</div></AppShell>
+          </LoaderProvider>
+        </ThemeProvider>
       </MemoryRouter>
     );
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Collection' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Inventory' })).toBeInTheDocument();
+  });
+
+  it('renders a theme preference toggle with system, dark, and light options', () => {
+    render(
+      <MemoryRouter>
+        <ThemeProvider>
+          <LoaderProvider>
+            <AppShell><div>Body</div></AppShell>
+          </LoaderProvider>
+        </ThemeProvider>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole('combobox', { name: /theme/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /system/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /dark/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /light/i })).toBeInTheDocument();
   });
 });
