@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { CollectionPage } from '../../src/features/collection/CollectionPage';
+import { ConfirmDialogProvider } from '../../src/shared/ui/confirm/ConfirmDialogProvider';
 
 const {
   useCollectionScheduleMock,
@@ -66,8 +68,31 @@ vi.mock('../../src/features/auth/sessionStore', async () => {
 });
 
 describe('CollectionPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    vi.mocked(useCollectionScheduleMock).mockReturnValue({
+      data: [
+        {
+          id: 'pickup-1',
+          site: 'North Campus',
+          status: 'scheduled',
+          assignedCollectorId: 'collector-1',
+          scheduledDate: '2026-06-20',
+          estimatedWeightKg: 25,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+    });
+  });
+
   it('renders collection rows and history icon for each pickup', () => {
-    render(<CollectionPage />);
+    render(
+      <ConfirmDialogProvider>
+        <CollectionPage />
+      </ConfirmDialogProvider>
+    );
 
     expect(screen.getByText('North Campus')).toBeInTheDocument();
     expect(screen.getByLabelText('View assignment history for pickup-1')).toBeInTheDocument();
@@ -89,8 +114,35 @@ describe('CollectionPage', () => {
       isError: false,
     });
 
-    render(<CollectionPage />);
+    render(
+      <ConfirmDialogProvider>
+        <CollectionPage />
+      </ConfirmDialogProvider>
+    );
 
     expect(screen.getByText('Sent to Aggregation Round')).toBeInTheDocument();
+  });
+
+  it('uses global confirm dialog before deleting a pickup task', async () => {
+    const user = userEvent.setup();
+    const deleteMutate = vi.fn();
+
+    vi.mocked(useDeletePickupTaskMock).mockReturnValue({ mutate: deleteMutate });
+
+    render(
+      <ConfirmDialogProvider>
+        <CollectionPage />
+      </ConfirmDialogProvider>
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    const dialog = screen.getByRole('dialog', { name: /delete pickup task/i });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByText('Delete pickup task pickup-1?')).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: /^Delete$/i }));
+
+    expect(deleteMutate).toHaveBeenCalledWith('pickup-1');
   });
 });

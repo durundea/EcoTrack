@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
 import { validateSegregationEntry } from './validation';
@@ -7,6 +7,7 @@ import { WASTE_CATEGORIES, WASTE_LABELS } from '../../shared/domain/waste';
 import { StatusBadge } from '../../shared/ui/StatusBadge';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { CrudActions } from '../../shared/ui/CrudActions';
+import { DataTable, Select } from '../../shared/ui/primitives';
 
 const emptyWeights = (): Record<WasteCategory, number> => ({
   plastic: 0, organic: 0, metal: 0, paper: 0, ewaste: 0,
@@ -55,6 +56,68 @@ export function SegregationPage() {
   const [selectedDetailId, setSelectedDetailId] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
   const [saveSuccessMessage, setSaveSuccessMessage] = useState('');
+
+  const pendingBatchOptions = useMemo(
+    () => [
+      { label: 'Select pending batch', value: '' },
+      ...((pendingBatches ?? []).map((entry) => ({
+        value: entry.id,
+        label: `${entry.batchCode} | ${entry.pickupCode} | ${entry.status}${entry.recordedAtUtc ? ` | Recorded ${formatUtcDate(entry.recordedAtUtc)}` : ''}`,
+      }))),
+    ],
+    [pendingBatches]
+  );
+
+  const historyColumns = [
+    {
+      key: 'batchCode',
+      header: 'Batch Code',
+      render: (batch: NonNullable<typeof batches>[number]) => <span className="font-mono text-slate-300">{batch.batchCode}</span>,
+    },
+    {
+      key: 'pickupTaskId',
+      header: 'Pickup Task',
+      render: (batch: NonNullable<typeof batches>[number]) => batch.pickupTaskId,
+    },
+    {
+      key: 'pickupCode',
+      header: 'Pickup Code',
+      render: (batch: NonNullable<typeof batches>[number]) => batch.pickupCode,
+    },
+    {
+      key: 'recordedAtUtc',
+      header: 'Recorded At',
+      render: (batch: NonNullable<typeof batches>[number]) => formatUtcDate(batch.recordedAtUtc),
+    },
+    {
+      key: 'recycledAtUtc',
+      header: 'Recycled At',
+      render: (batch: NonNullable<typeof batches>[number]) => formatUtcDate(batch.recycledAtUtc),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (batch: NonNullable<typeof batches>[number]) => (
+        <StatusBadge variant={statusVariant(batch.status)}>
+          {batch.status}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (batch: NonNullable<typeof batches>[number]) => (
+        <CrudActions
+          onEdit={() => setSelectedDetailId(batch.id)}
+          editLabel="View"
+          onDelete={batch.status.toLowerCase().includes('recycled') ? undefined : () => markRecycled(batch.id)}
+          deleteLabel={isMarkingRecycled ? 'Sending...' : 'Send to Recycling'}
+        />
+      ),
+    },
+  ];
+
+  const historyTableState = isLoading ? 'loading' : isHistoryError ? 'error' : (batches?.length ?? 0) === 0 ? 'empty' : 'ready';
 
   const {
     data: selectedDetail,
@@ -123,20 +186,13 @@ export function SegregationPage() {
         <h2 className="mb-4 text-lg font-medium">Record Segregation Batch</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="segregation-batch-select" className="mb-1 block text-sm text-slate-400">Segregation Queue Entry</label>
-            <select
+            <Select
               id="segregation-batch-select"
+              label="Segregation Queue Entry"
               value={selectedBatchId}
-              onChange={(e) => setSelectedBatchId(e.target.value)}
-              className="rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus:border-brand-500 focus:outline-none"
-            >
-              <option value="">Select pending batch</option>
-              {(pendingBatches ?? []).map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  {entry.batchCode} | {entry.pickupCode} | {entry.status}{entry.recordedAtUtc ? ` | Recorded ${formatUtcDate(entry.recordedAtUtc)}` : ''}
-                </option>
-              ))}
-            </select>
+              options={pendingBatchOptions}
+              onChange={setSelectedBatchId}
+            />
             {isPendingError ? <p className="mt-1 text-xs text-red-400">Failed to load pending segregation queue.</p> : null}
           </div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
@@ -169,50 +225,14 @@ export function SegregationPage() {
       {/* Existing batches */}
       <div>
         <h2 className="mb-3 text-lg font-medium">Segregation History</h2>
-        {isHistoryError ? <p className="mb-3 text-sm text-red-400">Failed to load segregation history.</p> : null}
-        {isLoading ? (
-          <p className="text-slate-400">Loading…</p>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/75 shadow-lg shadow-slate-950/30">
-            <table className="w-full text-sm text-slate-100">
-              <thead className="bg-slate-800 text-xs uppercase text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Batch Code</th>
-                  <th className="px-4 py-3 text-left">Pickup Task</th>
-                  <th className="px-4 py-3 text-left">Pickup Code</th>
-                  <th className="px-4 py-3 text-left">Recorded At</th>
-                  <th className="px-4 py-3 text-left">Recycled At</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {batches?.map((b) => (
-                  <tr key={b.id} className="border-b border-slate-800">
-                    <td className="px-4 py-3 font-mono text-slate-300">{b.batchCode}</td>
-                    <td className="px-4 py-3">{b.pickupTaskId}</td>
-                    <td className="px-4 py-3">{b.pickupCode}</td>
-                    <td className="px-4 py-3">{formatUtcDate(b.recordedAtUtc)}</td>
-                    <td className="px-4 py-3">{formatUtcDate(b.recycledAtUtc)}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge variant={statusVariant(b.status)}>
-                        {b.status}
-                      </StatusBadge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <CrudActions
-                        onEdit={() => setSelectedDetailId(b.id)}
-                        editLabel="View"
-                        onDelete={b.status.toLowerCase().includes('recycled') ? undefined : () => markRecycled(b.id)}
-                        deleteLabel={isMarkingRecycled ? 'Sending...' : 'Send to Recycling'}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable
+          columns={historyColumns}
+          rows={batches ?? []}
+          state={historyTableState}
+          errorMessage="Failed to load segregation history."
+          emptyTitle="No segregation batches found."
+          getRowKey={(batch) => batch.id}
+        />
       </div>
 
       {selectedDetailId ? (

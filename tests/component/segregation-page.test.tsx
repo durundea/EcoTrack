@@ -94,7 +94,18 @@ describe('SegregationPage integration', () => {
   it('renders pending backend batches in dropdown', async () => {
     renderPage();
 
+    expect(await screen.findByLabelText(/Segregation Queue Entry/i)).toBeInTheDocument();
     expect(await screen.findByText(/SB-001 \| PK-001 \| pending/i)).toBeInTheDocument();
+  });
+
+  it('renders segregation history through a shared table primitive contract', async () => {
+    renderPage();
+
+    const table = await screen.findByRole('table');
+    expect(table).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /Batch Code/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /Pickup Task/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /Actions/i })).toBeInTheDocument();
   });
 
   it('records selected batch using record endpoint', async () => {

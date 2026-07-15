@@ -13,6 +13,8 @@ import { StatusBadge } from '../../shared/ui/StatusBadge';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { CrudActions } from '../../shared/ui/CrudActions';
 import { Modal } from '../../shared/ui/Modal';
+import { useConfirmDialog } from '../../shared/ui/confirm/useConfirmDialog';
+import { DataTable, Select } from '../../shared/ui/primitives';
 import { getCurrentRole } from '../auth/sessionStore';
 import { PickupHistoryTooltip } from './PickupHistoryTooltip';
 import { upsertById } from '../../shared/services/queryListCache';
@@ -39,6 +41,13 @@ const STATUS_VARIANT: Record<string, 'warning' | 'info' | 'success' | 'neutral' 
   cancelled: 'neutral',
 };
 
+const PICKUP_STATUS_OPTIONS = [
+  { value: 'scheduled', label: 'Scheduled' },
+  { value: 'assigned', label: 'Assigned' },
+  { value: 'collected', label: 'Collected' },
+  { value: 'sent_to_aggregation_round', label: 'Sent to Aggregation Round' },
+];
+
 function formatTaskDateTimeLocal(task: PickupTask): string {
   const source = task.scheduledAtUtc ?? (task.scheduledDate ? `${task.scheduledDate}T00:00:00Z` : '');
   const date = new Date(source);
@@ -57,7 +66,7 @@ function formatTaskDateTimeLocal(task: PickupTask): string {
   }).format(date);
 }
 
-type TaskRowProps = {
+type TaskActionsProps = {
   task: PickupTask;
   dispatchAvailableKg: number;
   dispatchValue: string;
@@ -86,87 +95,73 @@ function TaskRow({
   onDispatch,
   onEdit,
   onDelete,
-}: TaskRowProps) {
+}: TaskActionsProps) {
   const { mutate, isPending } = useUpdatePickupStatus();
   const isLocked = task.status === 'collected' || task.status.toLowerCase() === 'cancelled';
 
   return (
-    <tr className="border-b border-slate-800 hover:bg-slate-800/50">
-      <td className="px-4 py-3 font-mono text-sm text-slate-400">{formatTaskDateTimeLocal(task)}</td>
-      <td className="px-4 py-3">{task.site}</td>
-      <td className="px-4 py-3">{task.pickupCode || '-'}</td>
-      <td className="px-4 py-3">{task.estimatedWeightKg != null ? `${task.estimatedWeightKg} kg` : '-'}</td>
-      <td className="px-4 py-3">{task.collectedWeightKg != null ? `${task.collectedWeightKg} kg` : '-'}</td>
-      <td className="px-4 py-3">
-        <StatusBadge variant={STATUS_VARIANT[task.status.toLowerCase()] ?? 'neutral'}>
-          {STATUS_LABELS[task.status.toLowerCase()] ?? task.status}
-        </StatusBadge>
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex flex-wrap gap-2">
-          {task.status === 'scheduled' && (
-            <button
-              disabled={isPending || !(task.assignedCollectorId ?? '').trim()}
-              onClick={() =>
-                mutate({
-                  id: task.id,
-                  status: 'assigned',
-                  assignedCollectorUserId: task.assignedCollectorId,
-                  note: task.notes || 'Assigned from collection page',
-                })
-              }
-              className="rounded bg-brand-600 px-3 py-1 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-              title={task.assignedCollectorId ? 'Assign pickup' : 'Set Assigned Collector ID in edit first'}
-            >
-              Assign
-            </button>
-          )}
-          {task.status === 'assigned' && (
-            <button
-              disabled={isPending}
-              onClick={() =>
-                mutate({
-                  id: task.id,
-                  status: 'collected',
-                  collectedWeightKg: task.estimatedWeightKg,
-                })
-              }
-              className="rounded bg-slate-600 px-3 py-1 text-xs font-medium text-white hover:bg-slate-500 disabled:opacity-50"
-            >
-              Mark Collected
-            </button>
-          )}
-          {task.status === 'collected' && (
-            <>
-              <input
-                type="number"
-                min={1}
-                max={dispatchAvailableKg}
-                value={dispatchValue}
-                onChange={(event) => onDispatchValueChange(task.id, event.target.value)}
-                placeholder="kg"
-                className="w-20 rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
-              />
-              <button
-                type="button"
-                disabled={isPending || dispatchAvailableKg <= 0}
-                onClick={() => onDispatch(task.id)}
-                className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-              >
-                Send to Segregation
-              </button>
-              <span className="text-xs text-slate-500">Available: {dispatchAvailableKg} kg</span>
-            </>
-          )}
-          <PickupHistoryTooltip pickupId={task.id} />
-          {!isLocked ? (
-            <CrudActions onEdit={() => onEdit(task)} onDelete={() => onDelete(task)} />
-          ) : (
-            <span className="text-xs text-slate-500">{task.status === 'collected' ? 'Locked after collection' : 'Locked'}</span>
-          )}
-        </div>
-      </td>
-    </tr>
+    <div className="flex flex-wrap gap-2">
+      {task.status === 'scheduled' && (
+        <button
+          disabled={isPending || !(task.assignedCollectorId ?? '').trim()}
+          onClick={() =>
+            mutate({
+              id: task.id,
+              status: 'assigned',
+              assignedCollectorUserId: task.assignedCollectorId,
+              note: task.notes || 'Assigned from collection page',
+            })
+          }
+          className="rounded bg-brand-600 px-3 py-1 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+          title={task.assignedCollectorId ? 'Assign pickup' : 'Set Assigned Collector ID in edit first'}
+        >
+          Assign
+        </button>
+      )}
+      {task.status === 'assigned' && (
+        <button
+          disabled={isPending}
+          onClick={() =>
+            mutate({
+              id: task.id,
+              status: 'collected',
+              collectedWeightKg: task.estimatedWeightKg,
+            })
+          }
+          className="rounded bg-slate-600 px-3 py-1 text-xs font-medium text-white hover:bg-slate-500 disabled:opacity-50"
+        >
+          Mark Collected
+        </button>
+      )}
+      {task.status === 'collected' && (
+        <>
+          <input
+            type="number"
+            min={1}
+            max={dispatchAvailableKg}
+            value={dispatchValue}
+            onChange={(event) => onDispatchValueChange(task.id, event.target.value)}
+            placeholder="kg"
+            className="w-20 rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
+          />
+          <button
+            type="button"
+            disabled={isPending || dispatchAvailableKg <= 0}
+            onClick={() => onDispatch(task.id)}
+            className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+          >
+            Send to Segregation
+          </button>
+          <span className="text-xs text-slate-500">Available: {dispatchAvailableKg} kg</span>
+        </>
+      )}
+      <PickupHistoryTooltip pickupId={task.id} />
+      {!isLocked ? (
+        <CrudActions onEdit={() => onEdit(task)} onDelete={() => onDelete(task)} />
+      ) : (
+        <span className="text-xs text-slate-500">{task.status === 'collected' ? 'Locked after collection' : 'Locked'}</span>
+      )}
+    </div>
   );
 }
 
@@ -178,6 +173,7 @@ export function CollectionPage() {
   const { mutate: updatePickupStatus, isPending: updatingStatus } = useUpdatePickupStatus();
   const { mutate: deleteTask } = useDeletePickupTask();
   const { mutate: dispatchToSegregation } = useDispatchToSegregation();
+  const { confirm } = useConfirmDialog();
 
   const role = useMemo(() => getCurrentRole(), []);
   const isAdmin = role === 'admin';
@@ -272,9 +268,16 @@ export function CollectionPage() {
     openEditModal(task);
   }
 
-  function handleDelete(task: PickupTask) {
-    if (!window.confirm(`Delete pickup task ${task.id}?`)) return;
-    deleteTask(task.id);
+  async function handleDelete(task: PickupTask) {
+    await confirm({
+      title: 'Delete pickup task',
+      message: `Delete pickup task ${task.id}?`,
+      onConfirm: () => {
+        deleteTask(task.id);
+      },
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+    });
   }
 
   function getAvailableDispatchKg(task: PickupTask) {
@@ -299,6 +302,62 @@ export function CollectionPage() {
   if (isLoading) return <p className="text-slate-400">Loading schedule…</p>;
   if (isError) return <p className="text-red-400">Failed to load schedule.</p>;
 
+  const tableColumns = [
+    {
+      key: 'dateTime',
+      header: 'Date & Time (Local)',
+      render: (task: PickupTask) => <span className="font-mono text-sm text-slate-400">{formatTaskDateTimeLocal(task)}</span>,
+    },
+    {
+      key: 'site',
+      header: 'Site',
+      render: (task: PickupTask) => task.site,
+    },
+    {
+      key: 'pickupCode',
+      header: 'Pickup Code',
+      render: (task: PickupTask) => task.pickupCode || '-',
+    },
+    {
+      key: 'estimatedWeight',
+      header: 'Est. Weight',
+      render: (task: PickupTask) => (task.estimatedWeightKg != null ? `${task.estimatedWeightKg} kg` : '-'),
+    },
+    {
+      key: 'collectedWeight',
+      header: 'Collected Weight',
+      render: (task: PickupTask) => (task.collectedWeightKg != null ? `${task.collectedWeightKg} kg` : '-'),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (task: PickupTask) => (
+        <StatusBadge variant={STATUS_VARIANT[task.status.toLowerCase()] ?? 'neutral'}>
+          {STATUS_LABELS[task.status.toLowerCase()] ?? task.status}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (task: PickupTask) => (
+        <TaskRow
+          task={task}
+          dispatchAvailableKg={getAvailableDispatchKg(task)}
+          dispatchValue={dispatchInputs[task.id] ?? ''}
+          onDispatchValueChange={(taskId, value) =>
+            setDispatchInputs((prev) => ({ ...prev, [taskId]: value }))
+          }
+          onDispatch={handleDispatch}
+          onEdit={handleEdit}
+          onDelete={(selectedTask) => {
+            void handleDelete(selectedTask);
+          }}
+        />
+      ),
+    },
+  ];
+
   return (
     <div>
       <PageHeader
@@ -316,37 +375,13 @@ export function CollectionPage() {
           ) : undefined
         }
       />
-      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/75 shadow-lg shadow-slate-950/30">
-        <table className="w-full text-sm text-slate-100">
-          <thead className="bg-slate-800 text-xs uppercase text-slate-400">
-            <tr>
-              <th className="px-4 py-3 text-left">Date &amp; Time (Local)</th>
-              <th className="px-4 py-3 text-left">Site</th>
-              <th className="px-4 py-3 text-left">Pickup Code</th>
-              <th className="px-4 py-3 text-left">Est. Weight</th>
-              <th className="px-4 py-3 text-left">Collected Weight</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedTasks.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                dispatchAvailableKg={getAvailableDispatchKg(task)}
-                dispatchValue={dispatchInputs[task.id] ?? ''}
-                onDispatchValueChange={(taskId, value) =>
-                  setDispatchInputs((prev) => ({ ...prev, [taskId]: value }))
-                }
-                onDispatch={handleDispatch}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={tableColumns}
+        rows={displayedTasks}
+        state={displayedTasks.length > 0 ? 'ready' : 'empty'}
+        emptyTitle="No pickup tasks found."
+        getRowKey={(task) => task.id}
+      />
 
       <Modal
         isOpen={isCreateModalOpen}
@@ -406,17 +441,12 @@ export function CollectionPage() {
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs text-slate-400">Status</label>
-              <select
+              <Select
+                label="Status"
                 value={formState.status}
-                onChange={(e) => onFormFieldChange('status', e.target.value as PickupTask['status'])}
-                className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-              >
-                <option value="scheduled">Scheduled</option>
-                <option value="assigned">Assigned</option>
-                <option value="collected">Collected</option>
-                <option value="sent_to_aggregation_round">Sent to Aggregation Round</option>
-              </select>
+                options={PICKUP_STATUS_OPTIONS}
+                onChange={(value) => onFormFieldChange('status', value as PickupTask['status'])}
+              />
             </div>
             <div>
               <label className="mb-1 block text-xs text-slate-400">Assigned Collector (optional)</label>
