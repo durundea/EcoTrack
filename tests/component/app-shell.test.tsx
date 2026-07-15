@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { AppShell } from '../../src/app/layouts/AppShell';
@@ -53,9 +52,7 @@ describe('AppShell', () => {
     expect(screen.getByRole('option', { name: /light/i })).toBeInTheDocument();
   });
 
-  it('updates document theme and stored preference when changing theme selection', async () => {
-    const user = userEvent.setup();
-
+  it('updates document theme and stored preference when changing theme selection', () => {
     render(
       <MemoryRouter>
         <ThemeProvider>
@@ -68,15 +65,15 @@ describe('AppShell', () => {
 
     const themeSelect = screen.getByRole('combobox', { name: /theme preference/i });
 
-    await user.selectOptions(themeSelect, 'dark');
+    fireEvent.change(themeSelect, { target: { value: 'dark' } });
     expect(document.documentElement.dataset.theme).toBe('dark');
     expect(window.localStorage.getItem('ecotrack_theme_preference')).toBe('dark');
 
-    await user.selectOptions(themeSelect, 'light');
+    fireEvent.change(themeSelect, { target: { value: 'light' } });
     expect(document.documentElement.dataset.theme).toBe('light');
     expect(window.localStorage.getItem('ecotrack_theme_preference')).toBe('light');
 
-    await user.selectOptions(themeSelect, 'system');
+    fireEvent.change(themeSelect, { target: { value: 'system' } });
     expect(document.documentElement.dataset.theme).toBe('dark');
     expect(window.localStorage.getItem('ecotrack_theme_preference')).toBe('system');
   });
