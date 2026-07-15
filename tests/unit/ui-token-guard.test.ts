@@ -14,7 +14,7 @@ function collectFeatureTsxFiles(directory: string): string[] {
 }
 
 const bannedTailwindColorUtility =
-  /\b(?:bg|text|border|ring|divide|fill|stroke|from|via|to|placeholder|decoration|outline|accent|caret)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|black|white)(?:-(?:50|100|200|300|400|500|600|700|800|900|950))?(?:\/(?:\d{1,3}))?\b/g;
+  /\b(?:bg|text|border|ring|divide|fill|stroke|from|via|to|placeholder|decoration|outline|accent|caret)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|black|white|brand)(?:-(?:50|100|200|300|400|500|600|700|800|900|950))?(?:\/(?:\d{1,3}))?\b/g;
 
 const bannedArbitraryColorUtility =
   /\b(?:bg|text|border|ring|divide|fill|stroke|from|via|to|placeholder|decoration|outline|accent|caret)-\[(?:#[0-9a-fA-F]{3,8}|(?:rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)\([^\]]+\))\]/g;

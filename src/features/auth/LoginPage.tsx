@@ -32,7 +32,7 @@ export function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--surface-app)]">
       <div className="radius-lg w-full max-w-sm border border-[var(--border-subtle)] bg-[var(--surface-panel)] p-8 shadow-xl">
-        <h1 className="mb-6 text-2xl font-bold text-brand-500">EcoTrack</h1>
+        <h1 className="mb-6 text-2xl font-bold text-[var(--action-brand)]">EcoTrack</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
             id="email"
