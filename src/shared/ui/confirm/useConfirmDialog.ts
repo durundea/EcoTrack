@@ -9,10 +9,7 @@ export type ConfirmRequest = {
   confirmErrorMessage?: string;
 };
 
-export type ConfirmResult = {
-  status: 'confirmed' | 'cancelled';
-  error?: string;
-};
+export type ConfirmResult = 'confirmed' | 'cancelled';
 
 export type ConfirmDialogApi = {
   confirm: (request: ConfirmRequest) => Promise<ConfirmResult>;

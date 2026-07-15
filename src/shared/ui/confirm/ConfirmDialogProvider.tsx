@@ -15,7 +15,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
       confirm: (next: ConfirmRequest) =>
         new Promise<ConfirmResult>((resolve) => {
           if (resolverRef.current) {
-            resolverRef.current({ status: 'cancelled', error: 'superseded' });
+            resolverRef.current('cancelled');
           }
 
           confirmRunIdRef.current += 1;
@@ -39,7 +39,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   }
 
   function closeAsCancelled() {
-    closeWith({ status: 'cancelled' });
+    closeWith('cancelled');
   }
 
   async function confirmRequest() {
@@ -48,7 +48,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
     }
 
     if (!request.onConfirm) {
-      closeWith({ status: 'confirmed' });
+      closeWith('confirmed');
       return;
     }
 
@@ -62,7 +62,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      closeWith({ status: 'confirmed' });
+      closeWith('confirmed');
     } catch (error) {
       if (confirmRunIdRef.current !== runId) {
         return;
@@ -76,7 +76,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     return () => {
       if (resolverRef.current) {
-        resolverRef.current({ status: 'cancelled', error: 'provider_unmounted' });
+        resolverRef.current('cancelled');
         resolverRef.current = null;
       }
     };
