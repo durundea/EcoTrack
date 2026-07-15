@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from 'react';
+import { useId, type InputHTMLAttributes } from 'react';
 
 type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> & {
   label: string;
@@ -17,7 +17,14 @@ export function Input({
   onChange,
   ...props
 }: InputProps) {
-  const inputId = id ?? label.toLowerCase().replace(/\s+/g, '-');
+  const generatedId = useId();
+  const labelSlug = label
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9_-]/g, '');
+  const uniqueSuffix = generatedId.replace(/[^a-zA-Z0-9_-]/g, '');
+  const inputId = id ?? `${labelSlug || 'input'}-${uniqueSuffix}`;
   const hintId = hint ? `${inputId}-hint` : undefined;
   const errorId = error ? `${inputId}-error` : undefined;
 

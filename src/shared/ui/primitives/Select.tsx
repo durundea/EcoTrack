@@ -1,4 +1,4 @@
-import type { SelectHTMLAttributes } from 'react';
+import { useId, type SelectHTMLAttributes } from 'react';
 
 type SelectOption = {
   label: string;
@@ -25,7 +25,14 @@ export function Select({
   onChange,
   ...props
 }: SelectProps) {
-  const selectId = id ?? label.toLowerCase().replace(/\s+/g, '-');
+  const generatedId = useId();
+  const labelSlug = label
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9_-]/g, '');
+  const uniqueSuffix = generatedId.replace(/[^a-zA-Z0-9_-]/g, '');
+  const selectId = id ?? `${labelSlug || 'select'}-${uniqueSuffix}`;
   const hintId = hint ? `${selectId}-hint` : undefined;
   const errorId = error ? `${selectId}-error` : undefined;
 
