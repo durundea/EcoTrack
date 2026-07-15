@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useEffect, useMemo, useState } from 'react';
+import { createContext, type ReactNode, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import type { ActiveTheme } from './themeTokens';
 import { getStoredThemePreference, setStoredThemePreference, type ThemePreference } from './themeStorage';
 
@@ -17,6 +17,24 @@ function getSystemTheme(): ActiveTheme {
   }
 
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function resolveInitialActiveTheme(): ActiveTheme {
+  const preference = getStoredThemePreference();
+  return preference === 'system' ? getSystemTheme() : preference;
+}
+
+function applyThemeToDocument(theme: ActiveTheme): void {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  document.documentElement.dataset.theme = theme;
+}
+
+// Apply theme during module evaluation so the initial paint uses the resolved scheme.
+if (typeof window !== 'undefined') {
+  applyThemeToDocument(resolveInitialActiveTheme());
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -42,8 +60,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const activeTheme: ActiveTheme = userOverride === 'system' ? systemTheme : userOverride;
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = activeTheme;
+  useLayoutEffect(() => {
+    applyThemeToDocument(activeTheme);
   }, [activeTheme]);
 
   const contextValue = useMemo<ThemeContextValue>(
