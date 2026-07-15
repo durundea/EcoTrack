@@ -90,6 +90,8 @@ describe('DashboardPage', () => {
 
     renderDashboard();
 
+    expect(screen.getByRole('combobox', { name: /range/i })).toHaveClass('rounded-md');
+    expect(screen.getByRole('combobox', { name: /waste type/i })).toHaveClass('rounded-md');
     expect(await screen.findByRole('heading', { name: /pending sales approvals/i })).toBeInTheDocument();
     expect(await screen.findByText('3 pending for approval')).toBeInTheDocument();
   });

@@ -10,6 +10,7 @@ import { WASTE_CATEGORIES, WASTE_CHART_COLORS, WASTE_LABELS } from '../../shared
 import { KpiCard } from '../../shared/ui/KpiCard';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { CrudActions } from '../../shared/ui/CrudActions';
+import { Button, DataTable, Select } from '../../shared/ui/primitives';
 import { getSession } from '../auth/sessionStore';
 
 export function DashboardPage() {
@@ -46,41 +47,42 @@ export function DashboardPage() {
         subtitle="Track throughput, efficiency, revenue, and CO2 impact from a single operations view."
         actions={
           summary ? (
-            <button
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
               onClick={() => exportSummaryToCsv(summary)}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800"
             >
               Export CSV
-            </button>
+            </Button>
           ) : undefined
         }
       />
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 rounded-xl border border-slate-800 bg-slate-900/75 p-4 shadow-lg shadow-slate-950/30">
-        <div>
-          <label className="mr-2 text-xs text-slate-400">Range</label>
-          <select
-            value={filters.range}
-            onChange={(e) => setFilters((f) => ({ ...f, range: e.target.value as DashboardFilters['range'] }))}
-            className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
-          >
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="90d">Last 90 days</option>
-          </select>
-        </div>
-        <div>
-          <label className="mr-2 text-xs text-slate-400">Waste Type</label>
-          <select
-            value={filters.wasteType}
-            onChange={(e) => setFilters((f) => ({ ...f, wasteType: e.target.value as DashboardFilters['wasteType'] }))}
-            className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
-          >
-            <option value="all">All</option>
-            {WASTE_CATEGORIES.map((c) => <option key={c} value={c}>{WASTE_LABELS[c]}</option>)}
-          </select>
-        </div>
+      <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900/75 p-4 shadow-lg shadow-slate-950/30 sm:grid-cols-2">
+        <Select
+          label="Range"
+          value={filters.range}
+          options={[
+            { value: '7d', label: 'Last 7 days' },
+            { value: '30d', label: 'Last 30 days' },
+            { value: '90d', label: 'Last 90 days' },
+          ]}
+          onChange={(next) => setFilters((f) => ({ ...f, range: next as DashboardFilters['range'] }))}
+        />
+        <Select
+          label="Waste Type"
+          value={filters.wasteType}
+          options={[
+            { value: 'all', label: 'All' },
+            ...WASTE_CATEGORIES.map((category) => ({
+              value: category,
+              label: WASTE_LABELS[category],
+            })),
+          ]}
+          onChange={(next) => setFilters((f) => ({ ...f, wasteType: next as DashboardFilters['wasteType'] }))}
+        />
       </div>
 
       {isLoading ? (
@@ -162,38 +164,47 @@ export function DashboardPage() {
           </div>
 
           {/* Drill-down table */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/75 shadow-lg shadow-slate-950/30">
-            <div className="bg-slate-800 px-4 py-3 text-xs font-semibold uppercase text-slate-400">
-              Category Breakdown
-            </div>
-            <table className="w-full text-sm text-slate-100">
-              <thead>
-                <tr className="border-b border-slate-800">
-                  <th className="px-4 py-2 text-left text-xs text-slate-400">Category</th>
-                  <th className="px-4 py-2 text-left text-xs text-slate-400">Weight (kg)</th>
-                  <th className="px-4 py-2 text-left text-xs text-slate-400">Share (%)</th>
-                  <th className="px-4 py-2 text-left text-xs text-slate-400">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {WASTE_CATEGORIES.map((cat) => {
-                  const kg = summary!.byCategory[cat];
-                  const share = summary!.totalWasteProcessedKg > 0
-                    ? ((kg / summary!.totalWasteProcessedKg) * 100).toFixed(1)
-                    : '0.0';
-                  return (
-                    <tr key={cat} className="border-b border-slate-800 hover:bg-slate-800/40">
-                      <td className="px-4 py-2">{WASTE_LABELS[cat]}</td>
-                      <td className="px-4 py-2">{kg}</td>
-                      <td className="px-4 py-2">{share}%</td>
-                      <td className="px-4 py-2">
-                        <CrudActions />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase text-slate-400">Category Breakdown</h2>
+            <DataTable
+              columns={[
+                {
+                  key: 'category',
+                  header: 'Category',
+                  render: (row: { category: string }) => row.category,
+                },
+                {
+                  key: 'weight',
+                  header: 'Weight (kg)',
+                  render: (row: { kg: number }) => row.kg,
+                },
+                {
+                  key: 'share',
+                  header: 'Share (%)',
+                  render: (row: { share: string }) => `${row.share}%`,
+                },
+                {
+                  key: 'actions',
+                  header: 'Actions',
+                  render: () => <CrudActions />,
+                },
+              ]}
+              rows={WASTE_CATEGORIES.map((cat) => {
+                const kg = summary.byCategory[cat];
+                const share = summary.totalWasteProcessedKg > 0
+                  ? ((kg / summary.totalWasteProcessedKg) * 100).toFixed(1)
+                  : '0.0';
+
+                return {
+                  id: cat,
+                  category: WASTE_LABELS[cat],
+                  kg,
+                  share,
+                };
+              })}
+              state="ready"
+              getRowKey={(row) => row.id}
+            />
           </div>
 
           {isAdmin && (

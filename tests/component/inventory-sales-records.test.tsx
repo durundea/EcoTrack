@@ -151,6 +151,7 @@ describe('inventory sales records', () => {
     const salesTable = await findSalesTable();
     expect(within(salesTable).getByText(formatExpectedSoldAt('2026-06-01T00:00:00Z'))).toBeInTheDocument();
     const searchInput = screen.getByRole('textbox', { name: /search sales/i });
+    expect(searchInput).toHaveClass('rounded-md');
 
     fireEvent.change(searchInput, { target: { value: 'sale-002' } });
     await waitFor(() => {
@@ -241,6 +242,8 @@ describe('inventory sales records', () => {
 
     try {
       const salesTable = await findSalesTable();
+      const shell = salesTable.parentElement;
+      expect(shell).toHaveClass('rounded-lg');
       expect(within(salesTable).getByText(formatExpectedSoldAt('2026-06-03T00:00:00Z'))).toBeInTheDocument();
     } finally {
       releaseSecondSalesGet?.();

@@ -156,4 +156,35 @@ describe('RecyclingPage integration', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Inventory sync failed. Please retry the sync.');
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
+
+  it('renders converted stage controls with shared input and select primitives', async () => {
+    apiMock.recycling.getBatches.mockResolvedValueOnce([
+      {
+        id: 'rb-3',
+        segregationBatchId: 'sb-3',
+        stage: 'converted',
+        inputCategory: 'plastic',
+        outputProduct: 'Pellets',
+        inputWeightKg: 10,
+        outputQuantity: 4,
+        inventoryUpdated: false,
+        stageHistory: [
+          { stage: 'segregated', at: '2026-07-07T10:00:00Z' },
+          { stage: 'processing', at: '2026-07-07T10:10:00Z' },
+          { stage: 'converted', at: '2026-07-07T10:20:00Z' },
+        ],
+      },
+    ]);
+
+    renderPage();
+
+    const productNameInput = await screen.findByRole('textbox', { name: /product name/i });
+    const quantityInput = screen.getByRole('spinbutton', { name: /quantity/i });
+    const unitSelect = screen.getByRole('combobox', { name: /unit/i });
+
+    expect(productNameInput).toHaveClass('rounded-md');
+    expect(quantityInput).toHaveClass('rounded-md');
+    expect(unitSelect).toHaveClass('rounded-md');
+    expect(screen.getByRole('button', { name: /create product/i })).toBeInTheDocument();
+  });
 });

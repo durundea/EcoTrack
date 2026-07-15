@@ -5,6 +5,7 @@ import { isTerminalStage, STAGE_LABELS } from './recyclingRules';
 import { WASTE_LABELS } from '../../shared/domain/waste';
 import { StatusBadge } from '../../shared/ui/StatusBadge';
 import { PageHeader } from '../../shared/ui/PageHeader';
+import { Button, Input, Select } from '../../shared/ui/primitives';
 
 type ProductDraft = {
   productName: string;
@@ -92,14 +93,14 @@ export function RecyclingPage() {
         subtitle="Advance batches through conversion stages with traceable history."
       />
       <div>
-        <button
+        <Button
           type="button"
           disabled={syncingInventory}
           onClick={() => syncInventory()}
-          className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+          size="sm"
         >
           Push Converted Products to Inventory
-        </button>
+        </Button>
         {syncFeedback?.kind === 'success' ? (
           <p role="status" className="mt-2 text-sm text-emerald-300">
             {syncFeedback.message}
@@ -147,48 +148,55 @@ export function RecyclingPage() {
               </div>
 
               {canAdvanceWithApi && !isTerminalStage(batch.stage) && (
-                <button
+                <Button
+                  type="button"
                   disabled={isPending}
                   onClick={() => mutate({ id: batch.id, stage: { stage: nextStageValue } })}
-                  className="mt-4 rounded bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                  className="mt-4"
+                  size="sm"
                 >
                   Advance to {STAGE_LABELS[nextStageValue]}
-                </button>
+                </Button>
               )}
 
               {batch.stage === 'converted' && (
                 <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-4">
-                  <input
+                  <Input
+                    label="Product Name"
                     type="text"
                     placeholder="Product name"
                     value={productDrafts[batch.id]?.productName ?? ''}
-                    onChange={(event) => updateDraft(batch.id, { productName: event.target.value })}
-                    className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
+                    onChange={(next) => updateDraft(batch.id, { productName: next })}
+                    className="text-xs"
                   />
-                  <input
+                  <Input
+                    label="Quantity"
                     type="number"
                     min={1}
                     placeholder="Quantity"
                     value={productDrafts[batch.id]?.quantity || ''}
-                    onChange={(event) => updateDraft(batch.id, { quantity: Number(event.target.value) })}
-                    className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
+                    onChange={(next) => updateDraft(batch.id, { quantity: Number(next) })}
+                    className="text-xs"
                   />
-                  <select
+                  <Select
+                    label="Unit"
                     value={productDrafts[batch.id]?.unit ?? 'kg'}
-                    onChange={(event) => updateDraft(batch.id, { unit: event.target.value as 'kg' | 'units' })}
-                    className="rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
-                  >
-                    <option value="kg">kg</option>
-                    <option value="units">units</option>
-                  </select>
-                  <button
+                    onChange={(next) => updateDraft(batch.id, { unit: next as 'kg' | 'units' })}
+                    options={[
+                      { label: 'kg', value: 'kg' },
+                      { label: 'units', value: 'units' },
+                    ]}
+                    className="text-xs"
+                  />
+                  <Button
                     type="button"
                     disabled={creatingProduct}
                     onClick={() => handleCreateProduct(batch.id)}
-                    className="rounded bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                    className="self-end"
+                    size="sm"
                   >
                     Create Product
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

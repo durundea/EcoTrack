@@ -54,6 +54,8 @@ describe('inventory approval workflow', () => {
     renderInventory();
 
     expect(await screen.findByRole('button', { name: /create sale draft/i })).toBeInTheDocument();
+    const itemSelect = screen.getByRole('combobox', { name: /^item$/i });
+    expect(itemSelect).toHaveClass('rounded-md');
     expect(screen.queryByRole('button', { name: /update price/i })).not.toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: /sales records/i })).toBeInTheDocument();
   });
@@ -93,6 +95,7 @@ describe('inventory approval workflow', () => {
     expect(await screen.findByRole('button', { name: /create sale draft/i })).toBeInTheDocument();
     const priceButtons = await screen.findAllByRole('button', { name: /update price/i });
     expect(priceButtons.length).toBeGreaterThan(0);
+    expect(screen.getByRole('combobox', { name: /^item$/i })).toHaveClass('rounded-md');
     expect(await screen.findByText(/price update only/i)).toBeInTheDocument();
   });
 });

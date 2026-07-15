@@ -5,6 +5,7 @@ import { KpiCard } from '../../shared/ui/KpiCard';
 import { StatusBadge } from '../../shared/ui/StatusBadge';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { Modal } from '../../shared/ui/Modal';
+import { Button, DataTable, Input, Select } from '../../shared/ui/primitives';
 import type { InventoryItem, SaleRecord } from '../../shared/api/contracts';
 import { getSession } from '../auth/sessionStore';
 import { buildSalesRows, filterSalesRows } from './salesRecords';
@@ -168,6 +169,107 @@ export function InventoryPage() {
   );
   const salesRows = useMemo(() => buildSalesRows(reflectedSales, items ?? []), [reflectedSales, items]);
   const filteredSalesRows = useMemo(() => filterSalesRows(salesRows, salesSearch), [salesRows, salesSearch]);
+  const createSaleItemOptions = useMemo(
+    () => [
+      { label: 'Select item', value: '' },
+      ...(items ?? []).map((item) => ({
+        label: item.name,
+        value: item.id,
+      })),
+    ],
+    [items]
+  );
+  const stockLedgerColumns = useMemo(
+    () => [
+      {
+        key: 'id',
+        header: 'ID',
+        className: 'font-mono text-[var(--text-muted)]',
+        render: (item: InventoryItem) => item.id,
+      },
+      {
+        key: 'name',
+        header: 'Item',
+        render: (item: InventoryItem) => item.name,
+      },
+      {
+        key: 'category',
+        header: 'Category',
+        render: (item: InventoryItem) => (
+          <StatusBadge variant={item.category === 'recycled-product' ? 'success' : 'neutral'}>{item.category}</StatusBadge>
+        ),
+      },
+      {
+        key: 'quantity',
+        header: 'Quantity',
+        render: (item: InventoryItem) => item.quantityKg,
+      },
+      {
+        key: 'unit',
+        header: 'Unit',
+        render: (item: InventoryItem) => item.unit,
+      },
+      {
+        key: 'standard-price',
+        header: 'Standard Price (INR)',
+        render: (item: InventoryItem) => `₹${item.standardPriceINR.toLocaleString('en-IN')}`,
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        render: (item: InventoryItem) => (
+          <div className="flex flex-wrap gap-2">
+            {isAdmin && (
+              <Button type="button" size="sm" onClick={() => openPriceEditor(item)}>
+                Update Price
+              </Button>
+            )}
+            {isAdmin ? (
+              <span className="text-xs text-slate-500">Price update only</span>
+            ) : (
+              <span className="text-xs text-slate-500">View only</span>
+            )}
+          </div>
+        ),
+      },
+    ],
+    [isAdmin]
+  );
+  const salesRecordColumns = useMemo(
+    () => [
+      {
+        key: 'sold-at',
+        header: 'Sold Date/Time (Local)',
+        className: 'font-mono text-slate-300',
+        render: (row: (typeof filteredSalesRows)[number]) => formatSoldAtDateTime(row.soldAt),
+      },
+      {
+        key: 'item-name',
+        header: 'Item',
+        render: (row: (typeof filteredSalesRows)[number]) => row.itemName,
+      },
+      {
+        key: 'quantity-sold',
+        header: 'Quantity',
+        render: (row: (typeof filteredSalesRows)[number]) => row.quantitySold,
+      },
+      {
+        key: 'revenue',
+        header: 'Revenue (INR)',
+        render: (row: (typeof filteredSalesRows)[number]) => `₹${row.revenueINR.toLocaleString('en-IN')}`,
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        render: (row: (typeof filteredSalesRows)[number]) => (
+          <StatusBadge variant={row.approvalStatus === 'pending_approval' ? 'warning' : row.approvalStatus === 'approved' ? 'success' : 'info'}>
+            {row.approvalStatus}
+          </StatusBadge>
+        ),
+      },
+    ],
+    [filteredSalesRows]
+  );
 
   return (
     <div className="space-y-8">
@@ -191,137 +293,75 @@ export function InventoryPage() {
             : 'Collector workflow: create a draft, then send it for approval.'}
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-          <div>
-            <label className="mb-1 block text-xs text-slate-400">Item</label>
-            <select
-              value={createSaleForm.inventoryItemId}
-              onChange={(event) =>
-                setCreateSaleForm((prev) => ({
-                  ...prev,
-                  inventoryItemId: event.target.value,
-                }))
-              }
-              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-            >
-              <option value="">Select item</option>
-              {(items ?? []).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-slate-400">Quantity Sold</label>
-            <input
-              type="number"
-              min={1}
-              value={createSaleForm.quantitySold}
-              onChange={(event) =>
-                setCreateSaleForm((prev) => ({
-                  ...prev,
-                  quantitySold: Number(event.target.value),
-                }))
-              }
-              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-slate-400">Sold Date</label>
-            <input
-              type="date"
-              value={createSaleForm.soldAt.slice(0, 10)}
-              onChange={(event) =>
-                setCreateSaleForm((prev) => ({
-                  ...prev,
-                  soldAt: new Date(event.target.value).toISOString(),
-                }))
-              }
-              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-            />
-          </div>
+          <Select
+            label="Item"
+            value={createSaleForm.inventoryItemId}
+            options={createSaleItemOptions}
+            onChange={(next) =>
+              setCreateSaleForm((prev) => ({
+                ...prev,
+                inventoryItemId: next,
+              }))
+            }
+          />
+          <Input
+            label="Quantity Sold"
+            type="number"
+            min={1}
+            value={createSaleForm.quantitySold}
+            onChange={(next) =>
+              setCreateSaleForm((prev) => ({
+                ...prev,
+                quantitySold: Number(next),
+              }))
+            }
+          />
+          <Input
+            label="Sold Date"
+            type="date"
+            value={createSaleForm.soldAt.slice(0, 10)}
+            onChange={(next) =>
+              setCreateSaleForm((prev) => ({
+                ...prev,
+                soldAt: next ? new Date(next).toISOString() : prev.soldAt,
+              }))
+            }
+          />
           <div className="flex items-end">
-            <button
+            <Button
               type="button"
               onClick={handleCreateSaleDraft}
               disabled={!createSaleForm.inventoryItemId || creatingSaleDraft || !user}
-              className="w-full rounded bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+              className="w-full"
             >
               Create Sale Draft
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       <div>
         <h2 className="mb-3 text-lg font-medium">Stock Ledger</h2>
-        {loadingItems ? (
-          <p className="text-slate-400">Loading...</p>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/75 shadow-lg shadow-slate-950/30">
-            <table className="w-full text-sm text-slate-100">
-              <thead className="bg-slate-800 text-xs uppercase text-slate-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">ID</th>
-                  <th className="px-4 py-3 text-left">Item</th>
-                  <th className="px-4 py-3 text-left">Category</th>
-                  <th className="px-4 py-3 text-left">Quantity</th>
-                  <th className="px-4 py-3 text-left">Unit</th>
-                  <th className="px-4 py-3 text-left">Standard Price (INR)</th>
-                  <th className="px-4 py-3 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(items ?? []).map((item) => (
-                  <tr key={item.id} className="border-b border-slate-800 hover:bg-slate-800/50">
-                    <td className="px-4 py-3 font-mono text-slate-400">{item.id}</td>
-                    <td className="px-4 py-3">{item.name}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge variant={item.category === 'recycled-product' ? 'success' : 'neutral'}>
-                        {item.category}
-                      </StatusBadge>
-                    </td>
-                    <td className="px-4 py-3">{item.quantityKg}</td>
-                    <td className="px-4 py-3">{item.unit}</td>
-                    <td className="px-4 py-3">₹{item.standardPriceINR.toLocaleString('en-IN')}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => openPriceEditor(item)}
-                            className="rounded bg-brand-600 px-2 py-1 text-xs font-semibold text-white hover:bg-brand-700"
-                          >
-                            Update Price
-                          </button>
-                        )}
-                        {isAdmin ? (
-                          <span className="text-xs text-slate-500">Price update only</span>
-                        ) : (
-                          <span className="text-xs text-slate-500">View only</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable
+          columns={stockLedgerColumns}
+          rows={items ?? []}
+          state={loadingItems ? 'loading' : (items ?? []).length === 0 ? 'empty' : 'ready'}
+          emptyTitle="No inventory items available."
+          getRowKey={(item) => item.id}
+        />
       </div>
 
       <div>
         <h2 className="mb-3 text-lg font-medium">Sales Records</h2>
         <div className="rounded-xl border border-slate-800 bg-slate-900/75 p-4 shadow-lg shadow-slate-950/30">
           <div className="mb-4">
-            <label htmlFor="sales-search" className="mb-1 block text-xs text-slate-400">Search Sales</label>
-            <input
+            <Input
               id="sales-search"
+              label="Search Sales"
               type="text"
               value={salesSearch}
-              onChange={(event) => setSalesSearch(event.target.value)}
+              onChange={setSalesSearch}
               placeholder="Search by sale ID or item name"
-              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
             />
           </div>
 
@@ -334,34 +374,12 @@ export function InventoryPage() {
           ) : filteredSalesRows.length === 0 ? (
             <p className="text-sm text-slate-400">No sales records match your search.</p>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/75">
-              <table className="w-full text-sm text-slate-100">
-                <thead className="bg-slate-800 text-xs uppercase text-slate-400">
-                  <tr>
-                    <th className="px-4 py-3 text-left">Sold Date/Time (Local)</th>
-                    <th className="px-4 py-3 text-left">Item</th>
-                    <th className="px-4 py-3 text-left">Quantity</th>
-                    <th className="px-4 py-3 text-left">Revenue (INR)</th>
-                    <th className="px-4 py-3 text-left">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSalesRows.map((row) => (
-                    <tr key={row.id} className="border-b border-slate-800 hover:bg-slate-800/50">
-                      <td className="px-4 py-3 font-mono text-slate-300">{formatSoldAtDateTime(row.soldAt)}</td>
-                      <td className="px-4 py-3">{row.itemName}</td>
-                      <td className="px-4 py-3">{row.quantitySold}</td>
-                      <td className="px-4 py-3">₹{row.revenueINR.toLocaleString('en-IN')}</td>
-                      <td className="px-4 py-3">
-                        <StatusBadge variant={row.approvalStatus === 'pending_approval' ? 'warning' : row.approvalStatus === 'approved' ? 'success' : 'info'}>
-                          {row.approvalStatus}
-                        </StatusBadge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              columns={salesRecordColumns}
+              rows={filteredSalesRows}
+              state="ready"
+              getRowKey={(row) => row.id}
+            />
           )}
         </div>
         {latestDraft && (
@@ -376,21 +394,22 @@ export function InventoryPage() {
               </div>
               {latestDraft.approvalStatus === 'draft' ? (
                 <div className="flex gap-2">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => openSaleEditor(latestDraft)}
-                    className="rounded border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800"
+                    variant="secondary"
+                    size="sm"
                   >
                     Edit Draft
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     disabled={submittingSale}
                     onClick={() => submitSaleForApproval({ id: latestDraft.id })}
-                    className="rounded bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                    size="sm"
                   >
                     Send for Approval
-                  </button>
+                  </Button>
                 </div>
               ) : latestDraft.approvalStatus === 'approved' ? (
                 <span className="text-xs text-slate-500">Locked after approval</span>
@@ -406,78 +425,62 @@ export function InventoryPage() {
         onClose={closeModal}
         footer={
           <>
-            <button
+            <Button
               type="button"
               onClick={closeModal}
-              className="rounded border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
+              variant="secondary"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={handleSaveEdit}
               disabled={isSubmitting}
-              className="rounded bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
             >
               {isSubmitting ? 'Saving...' : 'Save'}
-            </button>
+            </Button>
           </>
         }
       >
         {editTarget?.type === 'sale' ? (
           <div className="space-y-3">
-            <div>
-              <label className="mb-1 block text-xs text-slate-400">Item ID</label>
-              <input
-                type="text"
-                value={saleForm.inventoryItemId ?? ''}
-                onChange={(event) => setSaleForm((prev) => ({ ...prev, inventoryItemId: event.target.value }))}
-                className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-              />
-            </div>
+            <Input
+              label="Item ID"
+              type="text"
+              value={saleForm.inventoryItemId ?? ''}
+              onChange={(next) => setSaleForm((prev) => ({ ...prev, inventoryItemId: next }))}
+            />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-xs text-slate-400">Quantity Sold</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={saleForm.quantitySold ?? 0}
-                  onChange={(event) => setSaleForm((prev) => ({ ...prev, quantitySold: Number(event.target.value) }))}
-                  className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-slate-400">Revenue (INR)</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={editTarget.value.revenueINR}
-                  readOnly
-                  className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-slate-400">Sold Date</label>
-              <input
-                type="date"
-                value={(saleForm.soldAt ?? '').slice(0, 10)}
-                onChange={(event) => setSaleForm((prev) => ({ ...prev, soldAt: new Date(event.target.value).toISOString() }))}
-                className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+              <Input
+                label="Quantity Sold"
+                type="number"
+                min={0}
+                value={saleForm.quantitySold ?? 0}
+                onChange={(next) => setSaleForm((prev) => ({ ...prev, quantitySold: Number(next) }))}
+              />
+              <Input
+                label="Revenue (INR)"
+                type="number"
+                min={0}
+                value={editTarget.value.revenueINR}
+                readOnly
               />
             </div>
-          </div>
-        ) : editTarget?.type === 'price' ? (
-          <div>
-            <label className="mb-1 block text-xs text-slate-400">Standard Price (INR)</label>
-            <input
-              type="number"
-              min={0}
-              value={priceForm}
-              onChange={(event) => setPriceForm(Number(event.target.value))}
-              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+            <Input
+              label="Sold Date"
+              type="date"
+              value={(saleForm.soldAt ?? '').slice(0, 10)}
+              onChange={(next) => setSaleForm((prev) => ({ ...prev, soldAt: next ? new Date(next).toISOString() : prev.soldAt }))}
             />
           </div>
+        ) : editTarget?.type === 'price' ? (
+          <Input
+            label="Standard Price (INR)"
+            type="number"
+            min={0}
+            value={priceForm}
+            onChange={(next) => setPriceForm(Number(next))}
+          />
         ) : null}
       </Modal>
     </div>
