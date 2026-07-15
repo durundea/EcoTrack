@@ -14,7 +14,7 @@ import { PageHeader } from '../../shared/ui/PageHeader';
 import { CrudActions } from '../../shared/ui/CrudActions';
 import { Modal } from '../../shared/ui/Modal';
 import { useConfirmDialog } from '../../shared/ui/confirm/useConfirmDialog';
-import { DataTable, Select } from '../../shared/ui/primitives';
+import { Button, DataTable, Input, Select } from '../../shared/ui/primitives';
 import { getCurrentRole } from '../auth/sessionStore';
 import { PickupHistoryTooltip } from './PickupHistoryTooltip';
 import { upsertById } from '../../shared/services/queryListCache';
@@ -102,7 +102,7 @@ function TaskRow({
   return (
     <div className="flex flex-wrap gap-2">
       {task.status === 'scheduled' && (
-        <button
+        <Button
           disabled={isPending || !(task.assignedCollectorId ?? '').trim()}
           onClick={() =>
             mutate({
@@ -112,14 +112,14 @@ function TaskRow({
               note: task.notes || 'Assigned from collection page',
             })
           }
-          className="rounded bg-brand-600 px-3 py-1 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+          size="sm"
           title={task.assignedCollectorId ? 'Assign pickup' : 'Set Assigned Collector ID in edit first'}
         >
           Assign
-        </button>
+        </Button>
       )}
       {task.status === 'assigned' && (
-        <button
+        <Button
           disabled={isPending}
           onClick={() =>
             mutate({
@@ -128,38 +128,41 @@ function TaskRow({
               collectedWeightKg: task.estimatedWeightKg,
             })
           }
-          className="rounded bg-slate-600 px-3 py-1 text-xs font-medium text-white hover:bg-slate-500 disabled:opacity-50"
+          size="sm"
+          variant="secondary"
         >
           Mark Collected
-        </button>
+        </Button>
       )}
       {task.status === 'collected' && (
         <>
-          <input
+          <Input
+            id={`dispatch-kg-${task.id}`}
+            label="Dispatch (kg)"
             type="number"
             min={1}
             max={dispatchAvailableKg}
             value={dispatchValue}
-            onChange={(event) => onDispatchValueChange(task.id, event.target.value)}
+            onChange={(value) => onDispatchValueChange(task.id, value)}
             placeholder="kg"
-            className="w-20 rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100"
+            className="w-20 text-xs"
           />
-          <button
+          <Button
             type="button"
             disabled={isPending || dispatchAvailableKg <= 0}
             onClick={() => onDispatch(task.id)}
-            className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            size="sm"
           >
             Send to Segregation
-          </button>
-          <span className="text-xs text-slate-500">Available: {dispatchAvailableKg} kg</span>
+          </Button>
+          <span className="text-xs text-[var(--text-muted)]">Available: {dispatchAvailableKg} kg</span>
         </>
       )}
       <PickupHistoryTooltip pickupId={task.id} />
       {!isLocked ? (
         <CrudActions onEdit={() => onEdit(task)} onDelete={() => onDelete(task)} />
       ) : (
-        <span className="text-xs text-slate-500">{task.status === 'collected' ? 'Locked after collection' : 'Locked'}</span>
+        <span className="text-xs text-[var(--text-muted)]">{task.status === 'collected' ? 'Locked after collection' : 'Locked'}</span>
       )}
     </div>
   );
@@ -299,14 +302,14 @@ export function CollectionPage() {
     );
   }
 
-  if (isLoading) return <p className="text-slate-400">Loading schedule…</p>;
-  if (isError) return <p className="text-red-400">Failed to load schedule.</p>;
+  if (isLoading) return <p className="text-[var(--text-muted)]">Loading schedule…</p>;
+  if (isError) return <p className="text-[var(--status-danger)]">Failed to load schedule.</p>;
 
   const tableColumns = [
     {
       key: 'dateTime',
       header: 'Date & Time (Local)',
-      render: (task: PickupTask) => <span className="font-mono text-sm text-slate-400">{formatTaskDateTimeLocal(task)}</span>,
+      render: (task: PickupTask) => <span className="font-mono text-sm text-[var(--text-muted)]">{formatTaskDateTimeLocal(task)}</span>,
     },
     {
       key: 'site',
@@ -365,13 +368,13 @@ export function CollectionPage() {
         subtitle="Assign collectors and progress pickup tasks with minimal clicks."
         actions={
           isAdmin ? (
-            <button
+            <Button
               type="button"
               onClick={openCreateModal}
-              className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700"
+              size="sm"
             >
               Schedule New Pickup
-            </button>
+            </Button>
           ) : undefined
         }
       />
@@ -389,55 +392,45 @@ export function CollectionPage() {
         onClose={closeModal}
         footer={
           <>
-            <button
+            <Button
               type="button"
               onClick={closeModal}
-              className="rounded border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
+              variant="secondary"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={handleSaveTask}
               disabled={isSubmitting}
-              className="rounded bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
             >
               {isSubmitting ? 'Saving...' : 'Save'}
-            </button>
+            </Button>
           </>
         }
       >
         <div className="space-y-3">
-          <div>
-            <label className="mb-1 block text-xs text-slate-400">Site</label>
-            <input
-              type="text"
-              value={formState.site}
-              onChange={(e) => onFormFieldChange('site', e.target.value)}
-              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-            />
-          </div>
+          <Input
+            label="Site"
+            type="text"
+            value={formState.site}
+            onChange={(next) => onFormFieldChange('site', next)}
+          />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-xs text-slate-400">Scheduled Date</label>
-              <input
-                type="date"
-                value={formState.scheduledDate}
-                onChange={(e) => onFormFieldChange('scheduledDate', e.target.value)}
-                className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-slate-400">Estimated Weight (kg)</label>
-              <input
-                type="number"
-                min={0}
-                value={formState.estimatedWeightKg}
-                disabled={editingTask?.status === 'collected'}
-                onChange={(e) => onFormFieldChange('estimatedWeightKg', Number(e.target.value))}
-                className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-              />
-            </div>
+            <Input
+              label="Scheduled Date"
+              type="date"
+              value={formState.scheduledDate}
+              onChange={(next) => onFormFieldChange('scheduledDate', next)}
+            />
+            <Input
+              label="Estimated Weight (kg)"
+              type="number"
+              min={0}
+              value={formState.estimatedWeightKg}
+              disabled={editingTask?.status === 'collected'}
+              onChange={(next) => onFormFieldChange('estimatedWeightKg', Number(next))}
+            />
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
@@ -448,21 +441,18 @@ export function CollectionPage() {
                 onChange={(value) => onFormFieldChange('status', value as PickupTask['status'])}
               />
             </div>
-            <div>
-              <label className="mb-1 block text-xs text-slate-400">Assigned Collector (optional)</label>
-              <input
-                type="text"
-                value={formState.assignedCollectorDisplayName || formState.assignedCollectorId || ''}
-                onChange={(e) => {
-                  onFormFieldChange('assignedCollectorDisplayName', e.target.value);
-                  if (e.target.value !== formState.assignedCollectorDisplayName) {
-                    onFormFieldChange('assignedCollectorId', e.target.value);
+            <Input
+              label="Assigned Collector (optional)"
+              type="text"
+              value={formState.assignedCollectorDisplayName || formState.assignedCollectorId || ''}
+              onChange={(next) => {
+                  onFormFieldChange('assignedCollectorDisplayName', next);
+                  if (next !== formState.assignedCollectorDisplayName) {
+                    onFormFieldChange('assignedCollectorId', next);
                   }
                 }}
-                placeholder="Collector Name or ID"
-                className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-              />
-            </div>
+              placeholder="Collector Name or ID"
+            />
           </div>
         </div>
       </Modal>

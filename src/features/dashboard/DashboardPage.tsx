@@ -60,7 +60,7 @@ export function DashboardPage() {
       />
 
       {/* Filters */}
-      <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900/75 p-4 shadow-lg shadow-slate-950/30 sm:grid-cols-2">
+      <div className="radius-xl grid grid-cols-1 gap-3 border border-[var(--border-subtle)] bg-[var(--surface-panel)] p-4 shadow-lg sm:grid-cols-2">
         <Select
           label="Range"
           value={filters.range}
@@ -86,9 +86,9 @@ export function DashboardPage() {
       </div>
 
       {isLoading ? (
-        <p className="text-slate-400">Loading analytics…</p>
+        <p className="text-[var(--text-muted)]">Loading analytics…</p>
       ) : !summary ? (
-        <p className="text-slate-400">Dashboard data is currently unavailable.</p>
+        <p className="text-[var(--text-muted)]">Dashboard data is currently unavailable.</p>
       ) : (
         <>
           {/* KPI cards */}
@@ -116,8 +116,8 @@ export function DashboardPage() {
           {/* Charts */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Bar chart */}
-            <div className="rounded-xl border border-slate-800 bg-slate-900/75 p-5 shadow-lg shadow-slate-950/30">
-              <h2 className="mb-4 text-sm font-medium text-slate-300">Waste by Category (kg)</h2>
+            <div className="radius-xl border border-[var(--border-subtle)] bg-[var(--surface-panel)] p-5 shadow-lg">
+              <h2 className="mb-4 text-sm font-medium text-[var(--text-muted)]">Waste by Category (kg)</h2>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={categoryBarData}>
                   <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} />
@@ -136,8 +136,8 @@ export function DashboardPage() {
             </div>
 
             {/* Pie chart */}
-            <div className="rounded-xl border border-slate-800 bg-slate-900/75 p-5 shadow-lg shadow-slate-950/30">
-              <h2 className="mb-4 text-sm font-medium text-slate-300">Category Distribution</h2>
+            <div className="radius-xl border border-[var(--border-subtle)] bg-[var(--surface-panel)] p-5 shadow-lg">
+              <h2 className="mb-4 text-sm font-medium text-[var(--text-muted)]">Category Distribution</h2>
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
                   <Pie
@@ -165,7 +165,7 @@ export function DashboardPage() {
 
           {/* Drill-down table */}
           <div>
-            <h2 className="mb-3 text-sm font-semibold uppercase text-slate-400">Category Breakdown</h2>
+            <h2 className="mb-3 text-sm font-semibold uppercase text-[var(--text-muted)]">Category Breakdown</h2>
             <DataTable
               columns={[
                 {
@@ -208,9 +208,9 @@ export function DashboardPage() {
           </div>
 
           {isAdmin && (
-            <div className="rounded-xl border border-amber-700/40 bg-amber-950/20 p-5 shadow-lg shadow-slate-950/30">
-              <h2 className="mb-2 text-sm font-semibold text-amber-200">Pending Sales Approvals</h2>
-              <p className="text-sm text-amber-100">{pendingApprovalsMessage}</p>
+            <div className="radius-xl border p-5 shadow-lg" style={{ borderColor: 'var(--status-warning-border)', backgroundColor: 'var(--status-warning-bg)' }}>
+              <h2 className="mb-2 text-sm font-semibold" style={{ color: 'var(--status-warning-text)' }}>Pending Sales Approvals</h2>
+              <p className="text-sm" style={{ color: 'var(--status-warning-text)' }}>{pendingApprovalsMessage}</p>
             </div>
           )}
         </>

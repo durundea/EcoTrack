@@ -84,7 +84,7 @@ export function RecyclingPage() {
     createProduct({ recyclingBatchId: batchId, ...draft });
   }
 
-  if (isLoading) return <p className="text-slate-400">Loading recycling pipeline…</p>;
+  if (isLoading) return <p className="text-[var(--text-muted)]">Loading recycling pipeline…</p>;
 
   return (
     <div className="space-y-6">
@@ -102,12 +102,12 @@ export function RecyclingPage() {
           Push Converted Products to Inventory
         </Button>
         {syncFeedback?.kind === 'success' ? (
-          <p role="status" className="mt-2 text-sm text-emerald-300">
+          <p role="status" className="mt-2 text-sm text-[var(--status-success)]">
             {syncFeedback.message}
           </p>
         ) : null}
         {syncFeedback?.kind === 'error' ? (
-          <p role="alert" className="mt-2 text-sm text-rose-300">
+          <p role="alert" className="mt-2 text-sm text-[var(--status-danger)]">
             {syncFeedback.message}
           </p>
         ) : null}
@@ -119,15 +119,15 @@ export function RecyclingPage() {
           const nextStageValue = batch.stage === 'segregated' ? 'processing' : 'converted';
 
           return (
-            <div key={batch.id} className="rounded-xl border border-slate-800 bg-slate-900/75 p-5 shadow-lg shadow-slate-950/30">
+            <div key={batch.id} className="radius-xl border border-[var(--border-subtle)] bg-[var(--surface-panel)] p-5 shadow-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="font-mono text-sm text-slate-400">{batch.id}</span>
+                  <span className="font-mono text-sm text-[var(--text-muted)]">{batch.id}</span>
                   <p className="mt-1 font-medium">
                     {WASTE_LABELS[batch.inputCategory]} {'->'}{' '}
                     {batch.outputProduct}
                   </p>
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-[var(--text-muted)]">
                     Input: {batch.inputWeightKg} kg | Output: {batch.outputQuantity} units
                   </p>
                 </div>
@@ -140,9 +140,9 @@ export function RecyclingPage() {
               <div className="mt-4 flex items-center gap-2">
                 {(['collected', 'segregated', 'processing', 'converted'] as const).map((s, i) => (
                   <div key={s} className="flex items-center gap-2">
-                    <div className={`h-2.5 w-2.5 rounded-full ${batch.stage === s ? 'bg-brand-500 ring-2 ring-brand-300' : batch.stageHistory.some((h) => h.stage === s) ? 'bg-green-500' : 'bg-slate-700'}`} />
-                    <span className="text-xs text-slate-400">{STAGE_LABELS[s]}</span>
-                    {i < 3 && <div className="h-px w-6 bg-slate-700" />}
+                    <div className={`radius-full h-2.5 w-2.5 ${batch.stage === s ? 'bg-[var(--action-brand)] ring-2 ring-[var(--action-brand)]' : batch.stageHistory.some((h) => h.stage === s) ? 'bg-[var(--surface-panel-hover)]' : 'bg-[var(--border-subtle)]'}`} />
+                    <span className="text-xs text-[var(--text-muted)]">{STAGE_LABELS[s]}</span>
+                    {i < 3 && <div className="h-px w-6 bg-[var(--border-subtle)]" />}
                   </div>
                 ))}
               </div>

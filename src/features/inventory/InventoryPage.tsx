@@ -225,9 +225,9 @@ export function InventoryPage() {
               </Button>
             )}
             {isAdmin ? (
-              <span className="text-xs text-slate-500">Price update only</span>
+              <span className="text-xs text-[var(--text-muted)]">Price update only</span>
             ) : (
-              <span className="text-xs text-slate-500">View only</span>
+              <span className="text-xs text-[var(--text-muted)]">View only</span>
             )}
           </div>
         ),
@@ -240,7 +240,7 @@ export function InventoryPage() {
       {
         key: 'sold-at',
         header: 'Sold Date/Time (Local)',
-        className: 'font-mono text-slate-300',
+        className: 'font-mono text-[var(--text-muted)]',
         render: (row: (typeof filteredSalesRows)[number]) => formatSoldAtDateTime(row.soldAt),
       },
       {
@@ -285,9 +285,9 @@ export function InventoryPage() {
         <KpiCard label="Revenue (INR)" value={`₹${totalRevenue.toLocaleString('en-IN')}`} />
       </div>
 
-      <div className="rounded-xl border border-slate-800 bg-slate-900/75 p-5 shadow-lg shadow-slate-950/30">
+      <div className="radius-xl border border-[var(--border-subtle)] bg-[var(--surface-panel)] p-5 shadow-lg">
         <h2 className="mb-3 text-lg font-medium">Create Sale Draft</h2>
-        <p className="mb-3 text-xs text-slate-400">
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
           {isAdmin
             ? 'Admin override: use draft creation only for corrections or manual operational entries.'
             : 'Collector workflow: create a draft, then send it for approval.'}
@@ -353,7 +353,7 @@ export function InventoryPage() {
 
       <div>
         <h2 className="mb-3 text-lg font-medium">Sales Records</h2>
-        <div className="rounded-xl border border-slate-800 bg-slate-900/75 p-4 shadow-lg shadow-slate-950/30">
+        <div className="radius-xl border border-[var(--border-subtle)] bg-[var(--surface-panel)] p-4 shadow-lg">
           <div className="mb-4">
             <Input
               id="sales-search"
@@ -366,13 +366,13 @@ export function InventoryPage() {
           </div>
 
           {loadingSales ? (
-            <p className="text-sm text-slate-400">Loading sales records...</p>
+            <p className="text-sm text-[var(--text-muted)]">Loading sales records...</p>
           ) : hasSalesError ? (
-            <p className="text-sm text-rose-300">Unable to load sales records.</p>
+            <p className="text-sm text-[var(--status-danger)]">Unable to load sales records.</p>
           ) : salesRows.length === 0 ? (
-            <p className="text-sm text-slate-400">No sales records available.</p>
+            <p className="text-sm text-[var(--text-muted)]">No sales records available.</p>
           ) : filteredSalesRows.length === 0 ? (
-            <p className="text-sm text-slate-400">No sales records match your search.</p>
+            <p className="text-sm text-[var(--text-muted)]">No sales records match your search.</p>
           ) : (
             <DataTable
               columns={salesRecordColumns}
@@ -383,7 +383,7 @@ export function InventoryPage() {
           )}
         </div>
         {latestDraft && (
-          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/75 p-4 text-sm text-slate-200 shadow-lg shadow-slate-950/30">
+          <div className="radius-xl mt-4 border border-[var(--border-subtle)] bg-[var(--surface-panel)] p-4 text-sm text-[var(--text-primary)] shadow-lg">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
                 <p className="font-medium">Latest Draft: {latestDraft.id}</p>
@@ -412,7 +412,7 @@ export function InventoryPage() {
                   </Button>
                 </div>
               ) : latestDraft.approvalStatus === 'approved' ? (
-                <span className="text-xs text-slate-500">Locked after approval</span>
+                <span className="text-xs text-[var(--text-muted)]">Locked after approval</span>
               ) : null}
             </div>
           </div>

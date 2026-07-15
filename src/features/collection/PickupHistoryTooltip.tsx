@@ -16,7 +16,7 @@ export function PickupHistoryTooltip({ pickupId }: PickupHistoryTooltipProps) {
       <button
         type="button"
         aria-label={`View assignment history for ${pickupId}`}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-600 bg-slate-700 text-[11px] font-semibold text-slate-100 hover:bg-slate-600 hover:border-slate-500 transition-colors"
+        className="radius-full inline-flex h-6 w-6 items-center justify-center border border-[var(--border-subtle)] bg-[var(--surface-panel-hover)] text-[11px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-panel)]"
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}
         onFocus={() => setIsOpen(true)}
@@ -25,16 +25,16 @@ export function PickupHistoryTooltip({ pickupId }: PickupHistoryTooltipProps) {
         i
       </button>
       {isOpen ? (
-        <div className="absolute left-1/2 -translate-x-1/2 top-8 z-20 w-80 rounded-lg border border-slate-600 bg-slate-900 p-4 text-xs text-slate-100 shadow-xl before:absolute before:-top-1 before:left-1/2 before:-translate-x-1/2 before:w-2 before:h-2 before:bg-slate-900 before:border-l before:border-t before:border-slate-600 before:rotate-45">
-          <p className="mb-2 font-semibold text-slate-200">Assignment History</p>
+        <div className="radius-lg absolute left-1/2 top-8 z-20 w-80 -translate-x-1/2 border border-[var(--border-subtle)] bg-[var(--surface-panel)] p-4 text-xs text-[var(--text-primary)] shadow-xl before:absolute before:-top-1 before:left-1/2 before:h-2 before:w-2 before:-translate-x-1/2 before:rotate-45 before:border-l before:border-t before:border-[var(--border-subtle)] before:bg-[var(--surface-panel)]">
+          <p className="mb-2 font-semibold text-[var(--text-primary)]">Assignment History</p>
           {isLoading ? (
-            <p className="text-slate-400">Loading history...</p>
+            <p className="text-[var(--text-muted)]">Loading history...</p>
           ) : summaryLines.length === 0 ? (
-            <p className="text-slate-400">No assignment history yet.</p>
+            <p className="text-[var(--text-muted)]">No assignment history yet.</p>
           ) : (
             <ul className="space-y-1.5">
               {summaryLines.map((line, index) => (
-                <li key={`${pickupId}-${index}`} className="leading-relaxed text-slate-300">
+                <li key={`${pickupId}-${index}`} className="leading-relaxed text-[var(--text-muted)]">
                   {line}
                 </li>
               ))}

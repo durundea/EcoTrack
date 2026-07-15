@@ -7,7 +7,7 @@ import { WASTE_CATEGORIES, WASTE_LABELS } from '../../shared/domain/waste';
 import { StatusBadge } from '../../shared/ui/StatusBadge';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { CrudActions } from '../../shared/ui/CrudActions';
-import { DataTable, Select } from '../../shared/ui/primitives';
+import { Button, DataTable, Input, Select } from '../../shared/ui/primitives';
 
 const emptyWeights = (): Record<WasteCategory, number> => ({
   plastic: 0, organic: 0, metal: 0, paper: 0, ewaste: 0,
@@ -72,7 +72,7 @@ export function SegregationPage() {
     {
       key: 'batchCode',
       header: 'Batch Code',
-      render: (batch: NonNullable<typeof batches>[number]) => <span className="font-mono text-slate-300">{batch.batchCode}</span>,
+      render: (batch: NonNullable<typeof batches>[number]) => <span className="font-mono text-[var(--text-muted)]">{batch.batchCode}</span>,
     },
     {
       key: 'pickupTaskId',
@@ -182,7 +182,7 @@ export function SegregationPage() {
       />
 
       {/* New batch form */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/75 p-6 shadow-lg shadow-slate-950/30">
+      <div className="radius-xl border border-[var(--border-subtle)] bg-[var(--surface-panel)] p-6 shadow-lg">
         <h2 className="mb-4 text-lg font-medium">Record Segregation Batch</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -193,32 +193,29 @@ export function SegregationPage() {
               options={pendingBatchOptions}
               onChange={setSelectedBatchId}
             />
-            {isPendingError ? <p className="mt-1 text-xs text-red-400">Failed to load pending segregation queue.</p> : null}
+            {isPendingError ? <p className="mt-1 text-xs text-[var(--status-danger)]">Failed to load pending segregation queue.</p> : null}
           </div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
             {WASTE_CATEGORIES.map((cat) => (
-              <div key={cat}>
-                <label htmlFor={`weight-${cat}`} className="mb-1 block text-xs text-slate-400">{WASTE_LABELS[cat]} (kg)</label>
-                <input
+              <Input
+                key={cat}
                   id={`weight-${cat}`}
+                  label={`${WASTE_LABELS[cat]} (kg)`}
                   type="number"
                   min={0}
                   value={weights[cat]}
-                  onChange={(e) => setWeights((w) => ({ ...w, [cat]: Number(e.target.value) }))}
-                  className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus:border-brand-500 focus:outline-none"
+                  onChange={(next) => setWeights((w) => ({ ...w, [cat]: Number(next) }))}
                 />
-              </div>
             ))}
           </div>
-          {saveSuccessMessage ? <p role="status" aria-live="polite" className="text-sm text-emerald-400">{saveSuccessMessage}</p> : null}
-          {formError && <p role="alert" className="text-sm text-red-400">{formError}</p>}
-          <button
+          {saveSuccessMessage ? <p role="status" aria-live="polite" className="text-sm text-[var(--status-success)]">{saveSuccessMessage}</p> : null}
+          {formError && <p role="alert" className="text-sm text-[var(--status-danger)]">{formError}</p>}
+          <Button
             type="submit"
             disabled={isPending}
-            className="rounded bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {isPending ? 'Saving…' : 'Save Batch'}
-          </button>
+          </Button>
         </form>
       </div>
 
@@ -236,41 +233,42 @@ export function SegregationPage() {
       </div>
 
       {selectedDetailId ? (
-        <div role="dialog" aria-label="Segregation batch details" className="rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-lg shadow-slate-950/30">
+        <div role="dialog" aria-label="Segregation batch details" className="radius-xl border border-[var(--border-subtle)] bg-[var(--surface-panel)] p-5 shadow-lg">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold">Batch Details</h3>
-            <button
+            <Button
               type="button"
               onClick={() => setSelectedDetailId(null)}
-              className="rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800"
+              variant="secondary"
+              size="sm"
             >
               Close
-            </button>
+            </Button>
           </div>
 
-          {isFetchingDetail ? <p className="text-sm text-slate-400">Loading details…</p> : null}
-          {isDetailError ? <p className="text-sm text-red-400">Failed to load batch details.</p> : null}
+          {isFetchingDetail ? <p className="text-sm text-[var(--text-muted)]">Loading details…</p> : null}
+          {isDetailError ? <p className="text-sm text-[var(--status-danger)]">Failed to load batch details.</p> : null}
           {selectedDetail ? (
-            <div className="grid grid-cols-1 gap-2 text-sm text-slate-200 sm:grid-cols-2">
-              <p><span className="text-slate-400">Batch Code:</span> {selectedDetail.batchCode}</p>
-              <p><span className="text-slate-400">Status:</span> {selectedDetail.status}</p>
-              <p><span className="text-slate-400">Pickup Task:</span> {selectedDetail.pickupTaskId}</p>
-              <p><span className="text-slate-400">Pickup Code:</span> {selectedDetail.pickupCode}</p>
-              <p><span className="text-slate-400">Site:</span> {selectedDetail.siteName}</p>
-              <p><span className="text-slate-400">Address:</span> {selectedDetail.siteAddressText}</p>
-              <p><span className="text-slate-400">Scheduled:</span> {formatUtcDate(selectedDetail.scheduledAtUtc)}</p>
-              <p><span className="text-slate-400">Collected Weight:</span> {selectedDetail.collectedWeightKg} kg</p>
-              <p><span className="text-slate-400">Plastic:</span> {selectedDetail.plasticKg} kg</p>
-              <p><span className="text-slate-400">Organic:</span> {selectedDetail.organicKg} kg</p>
-              <p><span className="text-slate-400">Metal:</span> {selectedDetail.metalKg} kg</p>
-              <p><span className="text-slate-400">Paper:</span> {selectedDetail.paperKg} kg</p>
-              <p><span className="text-slate-400">E-Waste:</span> {selectedDetail.eWasteKg} kg</p>
-              <p><span className="text-slate-400">Recorded By:</span> {selectedDetail.recordedByUserId || '-'}</p>
-              <p><span className="text-slate-400">Recorded At:</span> {formatUtcDate(selectedDetail.recordedAtUtc)}</p>
-              <p><span className="text-slate-400">Recycled By:</span> {selectedDetail.recycledByUserId || '-'}</p>
-              <p><span className="text-slate-400">Recycled At:</span> {formatUtcDate(selectedDetail.recycledAtUtc)}</p>
-              <p><span className="text-slate-400">Created:</span> {formatUtcDate(selectedDetail.createdAtUtc)}</p>
-              <p><span className="text-slate-400">Updated:</span> {formatUtcDate(selectedDetail.updatedAtUtc)}</p>
+            <div className="grid grid-cols-1 gap-2 text-sm text-[var(--text-primary)] sm:grid-cols-2">
+              <p><span className="text-[var(--text-muted)]">Batch Code:</span> {selectedDetail.batchCode}</p>
+              <p><span className="text-[var(--text-muted)]">Status:</span> {selectedDetail.status}</p>
+              <p><span className="text-[var(--text-muted)]">Pickup Task:</span> {selectedDetail.pickupTaskId}</p>
+              <p><span className="text-[var(--text-muted)]">Pickup Code:</span> {selectedDetail.pickupCode}</p>
+              <p><span className="text-[var(--text-muted)]">Site:</span> {selectedDetail.siteName}</p>
+              <p><span className="text-[var(--text-muted)]">Address:</span> {selectedDetail.siteAddressText}</p>
+              <p><span className="text-[var(--text-muted)]">Scheduled:</span> {formatUtcDate(selectedDetail.scheduledAtUtc)}</p>
+              <p><span className="text-[var(--text-muted)]">Collected Weight:</span> {selectedDetail.collectedWeightKg} kg</p>
+              <p><span className="text-[var(--text-muted)]">Plastic:</span> {selectedDetail.plasticKg} kg</p>
+              <p><span className="text-[var(--text-muted)]">Organic:</span> {selectedDetail.organicKg} kg</p>
+              <p><span className="text-[var(--text-muted)]">Metal:</span> {selectedDetail.metalKg} kg</p>
+              <p><span className="text-[var(--text-muted)]">Paper:</span> {selectedDetail.paperKg} kg</p>
+              <p><span className="text-[var(--text-muted)]">E-Waste:</span> {selectedDetail.eWasteKg} kg</p>
+              <p><span className="text-[var(--text-muted)]">Recorded By:</span> {selectedDetail.recordedByUserId || '-'}</p>
+              <p><span className="text-[var(--text-muted)]">Recorded At:</span> {formatUtcDate(selectedDetail.recordedAtUtc)}</p>
+              <p><span className="text-[var(--text-muted)]">Recycled By:</span> {selectedDetail.recycledByUserId || '-'}</p>
+              <p><span className="text-[var(--text-muted)]">Recycled At:</span> {formatUtcDate(selectedDetail.recycledAtUtc)}</p>
+              <p><span className="text-[var(--text-muted)]">Created:</span> {formatUtcDate(selectedDetail.createdAtUtc)}</p>
+              <p><span className="text-[var(--text-muted)]">Updated:</span> {formatUtcDate(selectedDetail.updatedAtUtc)}</p>
             </div>
           ) : null}
         </div>

@@ -13,8 +13,8 @@ export function RequireRole({ area, children }: Props) {
   if (!canAccess(role, area)) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3">
-        <p className="text-xl font-semibold text-red-400">Access denied</p>
-        <p className="text-slate-400 text-sm">You do not have permission to view this page.</p>
+        <p className="text-xl font-semibold text-[var(--status-danger)]">Access denied</p>
+        <p className="text-sm text-[var(--text-muted)]">You do not have permission to view this page.</p>
       </div>
     );
   }

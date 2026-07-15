@@ -19,8 +19,11 @@ const bannedTailwindColorUtility =
 const bannedArbitraryColorUtility =
   /\b(?:bg|text|border|ring|divide|fill|stroke|from|via|to|placeholder|decoration|outline|accent|caret)-\[(?:#[0-9a-fA-F]{3,8}|(?:rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)\([^\]]+\))\]/g;
 
+const bannedTailwindRadiusUtility =
+  /(?<![A-Za-z0-9_-])rounded(?:-(?:none|sm|md|lg|xl|2xl|3xl|full)|-\[[^\]]+\])?(?![A-Za-z0-9_-])/g;
+
 describe('ui token guard', () => {
-  it('disallows hardcoded color utility literals in feature pages', () => {
+  it('disallows hardcoded color and radius utility literals in feature pages', () => {
     const featureRoot = join(process.cwd(), 'src', 'features');
     const files = collectFeatureTsxFiles(featureRoot);
 
@@ -29,7 +32,8 @@ describe('ui token guard', () => {
         const content = readFileSync(filePath, 'utf8');
         const paletteMatches = content.match(bannedTailwindColorUtility) ?? [];
         const arbitraryMatches = content.match(bannedArbitraryColorUtility) ?? [];
-        const matches = [...new Set([...paletteMatches, ...arbitraryMatches])];
+        const radiusMatches = content.match(bannedTailwindRadiusUtility) ?? [];
+        const matches = [...new Set([...paletteMatches, ...arbitraryMatches, ...radiusMatches])];
 
         if (matches.length === 0) {
           return null;
