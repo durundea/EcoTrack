@@ -7,16 +7,25 @@ function isThemePreference(value: string | null): value is ThemePreference {
 }
 
 export function getStoredThemePreference(): ThemePreference {
-  const rawValue = window.localStorage.getItem(STORAGE_KEY);
+  try {
+    const rawValue = window.localStorage.getItem(STORAGE_KEY);
 
-  if (isThemePreference(rawValue)) {
-    return rawValue;
+    if (isThemePreference(rawValue)) {
+      return rawValue;
+    }
+
+    window.localStorage.setItem(STORAGE_KEY, 'system');
+  } catch {
+    // localStorage may be blocked/unavailable (private mode, SSR, browser policies).
   }
 
-  window.localStorage.setItem(STORAGE_KEY, 'system');
   return 'system';
 }
 
 export function setStoredThemePreference(value: ThemePreference): void {
-  window.localStorage.setItem(STORAGE_KEY, value);
+  try {
+    window.localStorage.setItem(STORAGE_KEY, value);
+  } catch {
+    // Ignore persistence failures and keep in-memory theme state functional.
+  }
 }

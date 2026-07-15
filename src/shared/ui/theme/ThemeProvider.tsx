@@ -34,7 +34,11 @@ function applyThemeToDocument(theme: ActiveTheme): void {
 
 // Apply theme during module evaluation so the initial paint uses the resolved scheme.
 if (typeof window !== 'undefined') {
-  applyThemeToDocument(resolveInitialActiveTheme());
+  try {
+    applyThemeToDocument(resolveInitialActiveTheme());
+  } catch {
+    // Never block app startup if environment APIs fail unexpectedly.
+  }
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

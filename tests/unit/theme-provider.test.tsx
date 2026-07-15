@@ -115,4 +115,15 @@ describe('ThemeProvider', () => {
     expect(result.current.isSystemMode).toBe(false);
     expect(window.localStorage.getItem('ecotrack_theme_preference')).toBe('light');
   });
+
+  it('applies resolved theme to document on module load (prepaint path)', async () => {
+    vi.resetModules();
+    stubMatchMedia(false);
+    window.localStorage.setItem('ecotrack_theme_preference', 'system');
+    document.documentElement.dataset.theme = '';
+
+    await import('../../src/shared/ui/theme/ThemeProvider');
+
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
 });
