@@ -5,6 +5,8 @@ export type ConfirmRequest = {
   message: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  onConfirm?: () => void | Promise<void>;
+  confirmErrorMessage?: string;
 };
 
 export type ConfirmResult = 'confirmed' | 'cancelled';

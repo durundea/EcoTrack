@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useId, useRef } from 'react';
+import { type ReactNode, useEffect, useId, useRef, type RefObject } from 'react';
 
 type Props = {
   isOpen: boolean;
@@ -6,6 +6,8 @@ type Props = {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  initialFocusRef?: RefObject<HTMLElement | null>;
+  isDismissDisabled?: boolean;
 };
 
 function getFocusableElements(container: HTMLElement) {
@@ -21,7 +23,15 @@ function getFocusableElements(container: HTMLElement) {
   return Array.from(container.querySelectorAll<HTMLElement>(selectors.join(',')));
 }
 
-export function Modal({ isOpen, title, onClose, children, footer }: Props) {
+export function Modal({
+  isOpen,
+  title,
+  onClose,
+  children,
+  footer,
+  initialFocusRef,
+  isDismissDisabled = false,
+}: Props) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -34,13 +44,16 @@ export function Modal({ isOpen, title, onClose, children, footer }: Props) {
 
     const previousActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-    const initialFocusTarget = closeButtonRef.current ?? getFocusableElements(dialogElement)[0] ?? dialogElement;
+    const initialFocusTarget =
+      initialFocusRef?.current ?? closeButtonRef.current ?? getFocusableElements(dialogElement)[0] ?? dialogElement;
     initialFocusTarget.focus();
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        if (!isDismissDisabled) {
+          onClose();
+        }
         return;
       }
 
@@ -78,7 +91,7 @@ export function Modal({ isOpen, title, onClose, children, footer }: Props) {
         previousActiveElement.focus();
       }
     };
-  }, [isOpen, onClose]);
+  }, [initialFocusRef, isDismissDisabled, isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -100,7 +113,8 @@ export function Modal({ isOpen, title, onClose, children, footer }: Props) {
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800"
+            disabled={isDismissDisabled}
+            className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Close
           </button>
