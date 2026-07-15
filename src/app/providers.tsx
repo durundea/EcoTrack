@@ -1,6 +1,7 @@
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode, useMemo } from 'react';
 import { clearSession } from '../features/auth/sessionStore';
+import { ConfirmDialogProvider } from '../shared/ui/confirm/ConfirmDialogProvider';
 import { ThemeProvider } from '../shared/ui/theme/ThemeProvider';
 import { ServiceHttpError } from '../shared/services';
 import { LoaderProvider, useLoader } from '../shared/services/LoaderContext';
@@ -40,9 +41,11 @@ function ProvidersInner({ children }: { children: ReactNode }) {
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
-      <LoaderProvider>
-        <ProvidersInner>{children}</ProvidersInner>
-      </LoaderProvider>
+      <ConfirmDialogProvider>
+        <LoaderProvider>
+          <ProvidersInner>{children}</ProvidersInner>
+        </LoaderProvider>
+      </ConfirmDialogProvider>
     </ThemeProvider>
   );
 }
