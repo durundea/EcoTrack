@@ -43,7 +43,6 @@ export function Select({
       </label>
       <select
         id={selectId}
-        aria-label={label}
         value={value}
         disabled={disabled}
         aria-invalid={error ? true : undefined}
