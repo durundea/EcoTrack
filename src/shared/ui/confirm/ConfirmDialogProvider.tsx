@@ -7,6 +7,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const resolverRef = useRef<((value: ConfirmResult) => void) | null>(null);
+  const confirmRunIdRef = useRef(0);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
 
   const api = useMemo(
@@ -14,9 +15,10 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
       confirm: (next: ConfirmRequest) =>
         new Promise<ConfirmResult>((resolve) => {
           if (resolverRef.current) {
-            resolverRef.current('cancelled');
+            resolverRef.current({ status: 'cancelled', error: 'superseded' });
           }
 
+          confirmRunIdRef.current += 1;
           resolverRef.current = resolve;
           setIsProcessing(false);
           setErrorMessage(null);
@@ -28,6 +30,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
 
   function closeWith(value: ConfirmResult) {
     const resolver = resolverRef.current;
+    confirmRunIdRef.current += 1;
     resolverRef.current = null;
     setIsProcessing(false);
     setErrorMessage(null);
@@ -36,11 +39,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   }
 
   function closeAsCancelled() {
-    if (isProcessing) {
-      return;
-    }
-
-    closeWith('cancelled');
+    closeWith({ status: 'cancelled' });
   }
 
   async function confirmRequest() {
@@ -49,17 +48,26 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
     }
 
     if (!request.onConfirm) {
-      closeWith('confirmed');
+      closeWith({ status: 'confirmed' });
       return;
     }
 
     setErrorMessage(null);
     setIsProcessing(true);
+    const runId = ++confirmRunIdRef.current;
 
     try {
       await request.onConfirm();
-      closeWith('confirmed');
+      if (confirmRunIdRef.current !== runId) {
+        return;
+      }
+
+      closeWith({ status: 'confirmed' });
     } catch (error) {
+      if (confirmRunIdRef.current !== runId) {
+        return;
+      }
+
       setErrorMessage(getErrorMessage(error, request.confirmErrorMessage));
       setIsProcessing(false);
     }
@@ -68,7 +76,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     return () => {
       if (resolverRef.current) {
-        resolverRef.current('cancelled');
+        resolverRef.current({ status: 'cancelled', error: 'provider_unmounted' });
         resolverRef.current = null;
       }
     };
@@ -89,7 +97,6 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
               ref={cancelButtonRef}
               type="button"
               onClick={closeAsCancelled}
-              disabled={isProcessing}
               className="rounded border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {request?.cancelLabel ?? 'Cancel'}

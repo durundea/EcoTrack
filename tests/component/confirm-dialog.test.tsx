@@ -3,11 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { ConfirmDialogProvider } from '../../src/shared/ui/confirm/ConfirmDialogProvider';
-import { useConfirmDialog } from '../../src/shared/ui/confirm/useConfirmDialog';
+import { type ConfirmResult, useConfirmDialog } from '../../src/shared/ui/confirm/useConfirmDialog';
 
 function Demo() {
   const { confirm } = useConfirmDialog();
-  const [result, setResult] = useState('');
+  const [result, setResult] = useState<ConfirmResult | null>(null);
 
   return (
     <>
@@ -23,7 +23,8 @@ function Demo() {
       >
         Trigger
       </button>
-      <p aria-label="confirm-result">{result}</p>
+      <p aria-label="confirm-result-status">{result?.status ?? ''}</p>
+      <p aria-label="confirm-result-error">{result?.error ?? ''}</p>
     </>
   );
 }
@@ -34,7 +35,7 @@ function AsyncDemo({
   onConfirm: () => Promise<void>;
 }) {
   const { confirm } = useConfirmDialog();
-  const [result, setResult] = useState('');
+  const [result, setResult] = useState<ConfirmResult | null>(null);
 
   return (
     <>
@@ -51,7 +52,8 @@ function AsyncDemo({
       >
         Trigger
       </button>
-      <p aria-label="confirm-result">{result}</p>
+      <p aria-label="confirm-result-status">{result?.status ?? ''}</p>
+      <p aria-label="confirm-result-error">{result?.error ?? ''}</p>
     </>
   );
 }
@@ -76,7 +78,7 @@ describe('ConfirmDialogProvider', () => {
     await user.click(screen.getByRole('button', { name: /cancel/i }));
 
     await waitFor(() => {
-      expect(screen.getByLabelText('confirm-result')).toHaveTextContent('cancelled');
+      expect(screen.getByLabelText('confirm-result-status')).toHaveTextContent('cancelled');
     });
     expect(screen.queryByRole('dialog', { name: /delete item/i })).not.toBeInTheDocument();
   });
@@ -94,7 +96,7 @@ describe('ConfirmDialogProvider', () => {
     await user.click(screen.getByRole('button', { name: /delete/i }));
 
     await waitFor(() => {
-      expect(screen.getByLabelText('confirm-result')).toHaveTextContent('confirmed');
+      expect(screen.getByLabelText('confirm-result-status')).toHaveTextContent('confirmed');
     });
   });
 
@@ -111,9 +113,46 @@ describe('ConfirmDialogProvider', () => {
     await user.keyboard('{Escape}');
 
     await waitFor(() => {
-      expect(screen.getByLabelText('confirm-result')).toHaveTextContent('cancelled');
+      expect(screen.getByLabelText('confirm-result-status')).toHaveTextContent('cancelled');
     });
     expect(screen.queryByRole('dialog', { name: /delete item/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps cancel enabled and allows cancelling while async confirm is processing', async () => {
+    const user = userEvent.setup();
+
+    let resolveConfirm: (() => void) | null = null;
+    const pendingConfirm = new Promise<void>((resolve) => {
+      resolveConfirm = resolve;
+    });
+
+    render(
+      <ConfirmDialogProvider>
+        <AsyncDemo onConfirm={() => pendingConfirm} />
+      </ConfirmDialogProvider>
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Trigger' }));
+    await user.click(screen.getByRole('button', { name: /delete/i }));
+
+    const cancelButton = screen.getByRole('button', { name: /cancel/i });
+    const deleteButton = screen.getByRole('button', { name: /processing/i });
+
+    expect(cancelButton).toBeEnabled();
+    expect(deleteButton).toBeDisabled();
+
+    await user.click(cancelButton);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('confirm-result-status')).toHaveTextContent('cancelled');
+    });
+    expect(screen.queryByRole('dialog', { name: /delete item/i })).not.toBeInTheDocument();
+
+    resolveConfirm?.();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('confirm-result-status')).toHaveTextContent('cancelled');
+    });
   });
 
   it('ignores Escape while async confirm is processing', async () => {
@@ -135,12 +174,12 @@ describe('ConfirmDialogProvider', () => {
     await user.keyboard('{Escape}');
 
     expect(screen.getByRole('dialog', { name: /delete item/i })).toBeInTheDocument();
-    expect(screen.getByLabelText('confirm-result')).toHaveTextContent('');
+    expect(screen.getByLabelText('confirm-result-status')).toHaveTextContent('');
 
     resolveConfirm?.();
 
     await waitFor(() => {
-      expect(screen.getByLabelText('confirm-result')).toHaveTextContent('confirmed');
+      expect(screen.getByLabelText('confirm-result-status')).toHaveTextContent('confirmed');
     });
   });
 
@@ -158,6 +197,6 @@ describe('ConfirmDialogProvider', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Failed to delete item.');
     expect(screen.getByRole('dialog', { name: /delete item/i })).toBeInTheDocument();
-    expect(screen.getByLabelText('confirm-result')).toHaveTextContent('');
+    expect(screen.getByLabelText('confirm-result-status')).toHaveTextContent('');
   });
 });
