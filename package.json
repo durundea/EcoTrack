@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
+    "test:ui-guard": "vitest --run tests/unit/ui-token-guard.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
