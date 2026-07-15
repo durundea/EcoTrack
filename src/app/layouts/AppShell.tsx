@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ChangeEvent, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { ConnectivityBadge } from '../../shared/ui/ConnectivityBadge';
 import { Loader } from '../../shared/ui/Loader';
@@ -21,6 +21,18 @@ export function AppShell({ children }: Props) {
   const user = useMemo(() => getSession()?.user ?? null, []);
   const { userOverride, setThemePreference } = useTheme();
 
+  function isThemePreference(value: string): value is 'light' | 'dark' | 'system' {
+    return value === 'light' || value === 'dark' || value === 'system';
+  }
+
+  function handleThemePreferenceChange(event: ChangeEvent<HTMLSelectElement>) {
+    const nextPreference = event.currentTarget.value;
+
+    if (isThemePreference(nextPreference)) {
+      setThemePreference(nextPreference);
+    }
+  }
+
   function handleLogout() {
     clearSession();
     window.location.href = '/login';
@@ -38,9 +50,8 @@ export function AppShell({ children }: Props) {
             <label className="sr-only" htmlFor="theme-preference">Theme preference</label>
             <select
               id="theme-preference"
-              aria-label="Theme"
               value={userOverride}
-              onChange={(event) => setThemePreference(event.target.value as 'light' | 'dark' | 'system')}
+              onChange={handleThemePreferenceChange}
               className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs uppercase tracking-[0.08em] text-slate-200"
             >
               <option value="system">System</option>
