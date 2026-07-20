@@ -51,6 +51,13 @@ These credentials are valid only if your backend seeds the same users.
 | `npm test -- --run`  | Run unit and component tests    |
 | `npm run test:e2e`   | Run Playwright E2E tests        |
 
+## UI Standards Verification
+
+- Theme preference supports System, Dark, Light.
+- All delete actions use global confirm modal.
+- Feature pages consume shared Select and DataTable primitives.
+- Run `npm run test:ui-guard` before merge.
+
 ## Role Access
 
 | Area        | Admin | Collector |
