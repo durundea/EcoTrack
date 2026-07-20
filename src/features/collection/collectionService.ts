@@ -11,6 +11,7 @@ import type {
   PickupTaskUpdateInputDto,
   PickupStatus,
 } from '../../shared/api/contracts';
+import { collection as legacyCollection } from '../../shared/api/legacyClient';
 import { requestJson } from '../../shared/services/http';
 
 type PickupTaskListResponse = {
@@ -98,8 +99,19 @@ function toListResponse(payload: PickupTaskPayload): PickupTaskListResponse {
 }
 
 async function readPickupList(): Promise<PickupTaskListResponse> {
-  const payload = await requestJson<PickupTaskPayload>('/api/collection/pickups');
-  return toListResponse(payload);
+  try {
+    const payload = await requestJson<PickupTaskPayload>('/api/collection/pickups');
+    return toListResponse(payload);
+  } catch {
+    const legacyItems = await legacyCollection.getSchedule();
+    return {
+      items: legacyItems,
+      page: 1,
+      pageSize: legacyItems.length,
+      totalCount: legacyItems.length,
+      totalPages: 1,
+    };
+  }
 }
 
 async function readPickupById(id: string): Promise<PickupTask> {
